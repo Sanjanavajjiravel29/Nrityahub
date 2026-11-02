@@ -90,6 +90,12 @@ fun FeeManagementScreen(
         onNewFeeStudentIdChange = viewModel::onNewFeeStudentIdChanged,
         onNewFeeDueDateChange = viewModel::onNewFeeDueDateChanged,
         onAddFeeStructureSubmit = viewModel::onAddFeeStructureSubmit,
+        onToggleStaffPayoutForm = viewModel::toggleStaffPayoutForm,
+        onPayoutStaffNameChange = viewModel::onPayoutStaffNameChanged,
+        onPayoutStaffRoleChange = viewModel::onPayoutStaffRoleChanged,
+        onPayoutStaffSalaryChange = viewModel::onPayoutStaffSalaryChanged,
+        onPayoutStaffUsernameChange = viewModel::onPayoutStaffUsernameChanged,
+        onConfirmStaffPayoutSubmit = viewModel::onConfirmStaffPayoutSubmit,
         onTabSelect = viewModel::onTabSelected,
         onBackClick = viewModel::onBackClicked
     )
@@ -107,6 +113,12 @@ fun FeeManagementContent(
     onNewFeeStudentIdChange: (String) -> Unit = {},
     onNewFeeDueDateChange: (String) -> Unit = {},
     onAddFeeStructureSubmit: () -> Unit = {},
+    onToggleStaffPayoutForm: () -> Unit = {},
+    onPayoutStaffNameChange: (String) -> Unit = {},
+    onPayoutStaffRoleChange: (String) -> Unit = {},
+    onPayoutStaffSalaryChange: (String) -> Unit = {},
+    onPayoutStaffUsernameChange: (String) -> Unit = {},
+    onConfirmStaffPayoutSubmit: () -> Unit = {},
     onTabSelect: (AdminTab) -> Unit = {},
     onBackClick: () -> Unit = {}
 ) {
@@ -545,6 +557,142 @@ fun FeeManagementContent(
                         }
 
                         FeeViewMode.STAFF_SALARY -> {
+                            if (uiState.processedPayoutSuccessName != null) {
+                                Card(
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+                                    border = BorderStroke(1.dp, Color(0xFFC8E6C9)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "✓ Salary payout processed & verified with staff credentials for ${uiState.processedPayoutSuccessName}! Status set to Paid / Processed.",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF2E7D32),
+                                        modifier = Modifier.padding(14.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
+
+                            if (uiState.showStaffPayoutForm) {
+                                Card(
+                                    shape = RoundedCornerShape(20.dp),
+                                    colors = CardDefaults.cardColors(containerColor = CardBackground),
+                                    border = BorderStroke(1.5.dp, DeepPlum),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(18.dp)
+                                    ) {
+                                        Text(
+                                            text = "Process Salary Payout & Verify Credentials",
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = DarkMaroonText
+                                        )
+
+                                        Spacer(modifier = Modifier.height(12.dp))
+
+                                        Text(text = "Staff full name", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DarkMaroonText)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Card(
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = CardDefaults.cardColors(containerColor = CardBackground),
+                                            border = BorderStroke(1.dp, CardBorder),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Box(modifier = Modifier.padding(12.dp)) {
+                                                BasicTextField(
+                                                    value = uiState.payoutStaffNameInput,
+                                                    onValueChange = onPayoutStaffNameChange,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(10.dp))
+
+                                        Text(text = "Staff role / designation", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DarkMaroonText)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Card(
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = CardDefaults.cardColors(containerColor = CardBackground),
+                                            border = BorderStroke(1.dp, CardBorder),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Box(modifier = Modifier.padding(12.dp)) {
+                                                BasicTextField(
+                                                    value = uiState.payoutStaffRoleInput,
+                                                    onValueChange = onPayoutStaffRoleChange,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(10.dp))
+
+                                        Text(text = "Calculated monthly salary", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DarkMaroonText)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Card(
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = CardDefaults.cardColors(containerColor = CardBackground),
+                                            border = BorderStroke(1.dp, CardBorder),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Box(modifier = Modifier.padding(12.dp)) {
+                                                BasicTextField(
+                                                    value = uiState.payoutStaffSalaryInput,
+                                                    onValueChange = onPayoutStaffSalaryChange,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(10.dp))
+
+                                        Text(text = "Staff login username / ID", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DarkMaroonText)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Card(
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = CardDefaults.cardColors(containerColor = CardBackground),
+                                            border = BorderStroke(1.dp, CardBorder),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Box(modifier = Modifier.padding(12.dp)) {
+                                                BasicTextField(
+                                                    value = uiState.payoutStaffUsernameInput,
+                                                    onValueChange = onPayoutStaffUsernameChange,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(14.dp))
+
+                                        Button(
+                                            onClick = onConfirmStaffPayoutSubmit,
+                                            colors = ButtonDefaults.buttonColors(containerColor = SoftLavenderBadge, contentColor = DeepPlum),
+                                            shape = RoundedCornerShape(16.dp),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(46.dp)
+                                        ) {
+                                            Text(
+                                                text = "Confirm Payout & Issue Credentials Notification",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = DeepPlum
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(14.dp))
+                            }
+
                             // Staff Salary Cards List
                             uiState.staffSalaryRecords.forEachIndexed { index, record ->
                                 Card(
@@ -618,14 +766,14 @@ fun FeeManagementContent(
                             Spacer(modifier = Modifier.height(16.dp))
 
                             OutlinedButton(
-                                onClick = { },
+                                onClick = onToggleStaffPayoutForm,
                                 colors = ButtonDefaults.outlinedButtonColors(containerColor = SoftLavenderBadge, contentColor = DeepPlum),
                                 border = BorderStroke(1.dp, CardBorder),
                                 shape = RoundedCornerShape(20.dp),
                                 modifier = Modifier.fillMaxWidth().height(48.dp)
                             ) {
                                 Text(
-                                    text = "Process Salary Calculation & Payouts",
+                                    text = if (uiState.showStaffPayoutForm) "Close Payout Form" else "Process Salary Calculation & Payouts (Admin Only)",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = DeepPlum

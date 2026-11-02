@@ -39,6 +39,12 @@ data class FeeManagementUiState(
     val newFeeStudentIdInput: String = "ananya.rao@nritahub",
     val newFeeDueDateInput: String = "25 October 2026",
     val createdFeeSuccessName: String? = null,
+    val showStaffPayoutForm: Boolean = false,
+    val payoutStaffNameInput: String = "Meera Iyer",
+    val payoutStaffRoleInput: String = "Senior Instructor",
+    val payoutStaffSalaryInput: String = "₹45,000",
+    val payoutStaffUsernameInput: String = "meera.iyer@nritahub",
+    val processedPayoutSuccessName: String? = null,
     val studentFeeRecords: List<StudentFeeRecord> = listOf(
         StudentFeeRecord("001", "Ananya Rao", "Bharatanatyam F2 · Autumn Recital Fee", "₹3,500", true),
         StudentFeeRecord("002", "Kavya Shah", "Bharatanatyam F2 · Autumn Recital Fee", "₹3,500", false),

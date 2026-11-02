@@ -59,6 +59,44 @@ class FeeManagementViewModel : ViewModel() {
         }
     }
 
+    fun toggleStaffPayoutForm() {
+        _uiState.update { it.copy(showStaffPayoutForm = !it.showStaffPayoutForm) }
+    }
+
+    fun onPayoutStaffNameChanged(name: String) {
+        _uiState.update { it.copy(payoutStaffNameInput = name) }
+    }
+
+    fun onPayoutStaffRoleChanged(role: String) {
+        _uiState.update { it.copy(payoutStaffRoleInput = role) }
+    }
+
+    fun onPayoutStaffSalaryChanged(salary: String) {
+        _uiState.update { it.copy(payoutStaffSalaryInput = salary) }
+    }
+
+    fun onPayoutStaffUsernameChanged(username: String) {
+        _uiState.update { it.copy(payoutStaffUsernameInput = username) }
+    }
+
+    fun onConfirmStaffPayoutSubmit() {
+        _uiState.update { currentState ->
+            val staffName = currentState.payoutStaffNameInput.ifBlank { "Staff Member" }
+            val updatedRecords = currentState.staffSalaryRecords.map { record ->
+                if (record.staffName.contains(staffName, ignoreCase = true)) {
+                    record.copy(payoutStatus = "Paid / Processed")
+                } else {
+                    record
+                }
+            }
+            currentState.copy(
+                staffSalaryRecords = updatedRecords,
+                showStaffPayoutForm = false,
+                processedPayoutSuccessName = staffName
+            )
+        }
+    }
+
     fun togglePaymentStatus(studentId: String) {
         _uiState.update { currentState ->
             val updated = currentState.studentFeeRecords.map { record ->
