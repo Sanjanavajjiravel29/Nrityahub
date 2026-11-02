@@ -18,12 +18,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -81,6 +83,13 @@ fun FeeManagementScreen(
         uiState = uiState,
         onFeeViewModeSelect = viewModel::onFeeViewModeSelected,
         onTogglePaymentStatus = viewModel::togglePaymentStatus,
+        onToggleAddFeeStructureForm = viewModel::toggleAddFeeStructureForm,
+        onNewFeeProgramNameChange = viewModel::onNewFeeProgramNameChanged,
+        onNewFeeAmountChange = viewModel::onNewFeeAmountChanged,
+        onNewFeeStudentNameChange = viewModel::onNewFeeStudentNameChanged,
+        onNewFeeStudentIdChange = viewModel::onNewFeeStudentIdChanged,
+        onNewFeeDueDateChange = viewModel::onNewFeeDueDateChanged,
+        onAddFeeStructureSubmit = viewModel::onAddFeeStructureSubmit,
         onTabSelect = viewModel::onTabSelected,
         onBackClick = viewModel::onBackClicked
     )
@@ -91,6 +100,13 @@ fun FeeManagementContent(
     uiState: FeeManagementUiState,
     onFeeViewModeSelect: (FeeViewMode) -> Unit = {},
     onTogglePaymentStatus: (String) -> Unit = {},
+    onToggleAddFeeStructureForm: () -> Unit = {},
+    onNewFeeProgramNameChange: (String) -> Unit = {},
+    onNewFeeAmountChange: (String) -> Unit = {},
+    onNewFeeStudentNameChange: (String) -> Unit = {},
+    onNewFeeStudentIdChange: (String) -> Unit = {},
+    onNewFeeDueDateChange: (String) -> Unit = {},
+    onAddFeeStructureSubmit: () -> Unit = {},
     onTabSelect: (AdminTab) -> Unit = {},
     onBackClick: () -> Unit = {}
 ) {
@@ -262,6 +278,161 @@ fun FeeManagementContent(
 
                     when (uiState.activeViewMode) {
                         FeeViewMode.STUDENT_FEES -> {
+                            if (uiState.createdFeeSuccessName != null) {
+                                Card(
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+                                    border = BorderStroke(1.dp, Color(0xFFC8E6C9)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "✓ Program fee structure issued for ${uiState.createdFeeSuccessName}! Credentials and fee notification sent.",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF2E7D32),
+                                        modifier = Modifier.padding(14.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
+
+                            if (uiState.showAddFeeStructureForm) {
+                                Card(
+                                    shape = RoundedCornerShape(20.dp),
+                                    colors = CardDefaults.cardColors(containerColor = CardBackground),
+                                    border = BorderStroke(1.5.dp, DeepPlum),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(18.dp)
+                                    ) {
+                                        Text(
+                                            text = "Add Program Fee Structure & Credentials",
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = DarkMaroonText
+                                        )
+
+                                        Spacer(modifier = Modifier.height(12.dp))
+
+                                        Text(text = "Program / Fee name", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DarkMaroonText)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Card(
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = CardDefaults.cardColors(containerColor = CardBackground),
+                                            border = BorderStroke(1.dp, CardBorder),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Box(modifier = Modifier.padding(12.dp)) {
+                                                BasicTextField(
+                                                    value = uiState.newFeeProgramNameInput,
+                                                    onValueChange = onNewFeeProgramNameChange,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(10.dp))
+
+                                        Text(text = "Fee amount", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DarkMaroonText)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Card(
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = CardDefaults.cardColors(containerColor = CardBackground),
+                                            border = BorderStroke(1.dp, CardBorder),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Box(modifier = Modifier.padding(12.dp)) {
+                                                BasicTextField(
+                                                    value = uiState.newFeeAmountInput,
+                                                    onValueChange = onNewFeeAmountChange,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(10.dp))
+
+                                        Text(text = "Student full name", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DarkMaroonText)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Card(
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = CardDefaults.cardColors(containerColor = CardBackground),
+                                            border = BorderStroke(1.dp, CardBorder),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Box(modifier = Modifier.padding(12.dp)) {
+                                                BasicTextField(
+                                                    value = uiState.newFeeStudentNameInput,
+                                                    onValueChange = onNewFeeStudentNameChange,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(10.dp))
+
+                                        Text(text = "Student ID / Username", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DarkMaroonText)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Card(
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = CardDefaults.cardColors(containerColor = CardBackground),
+                                            border = BorderStroke(1.dp, CardBorder),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Box(modifier = Modifier.padding(12.dp)) {
+                                                BasicTextField(
+                                                    value = uiState.newFeeStudentIdInput,
+                                                    onValueChange = onNewFeeStudentIdChange,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(10.dp))
+
+                                        Text(text = "Due date", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DarkMaroonText)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Card(
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = CardDefaults.cardColors(containerColor = CardBackground),
+                                            border = BorderStroke(1.dp, CardBorder),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Box(modifier = Modifier.padding(12.dp)) {
+                                                BasicTextField(
+                                                    value = uiState.newFeeDueDateInput,
+                                                    onValueChange = onNewFeeDueDateChange,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(14.dp))
+
+                                        Button(
+                                            onClick = onAddFeeStructureSubmit,
+                                            colors = ButtonDefaults.buttonColors(containerColor = SoftLavenderBadge, contentColor = DeepPlum),
+                                            shape = RoundedCornerShape(16.dp),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(46.dp)
+                                        ) {
+                                            Text(
+                                                text = "Issue Fee Structure & Notify Student",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = DeepPlum
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(14.dp))
+                            }
+
                             // Student Fee Cards List
                             uiState.studentFeeRecords.forEachIndexed { index, record ->
                                 Card(
@@ -357,13 +528,19 @@ fun FeeManagementContent(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            Button(
-                                onClick = { },
-                                colors = ButtonDefaults.buttonColors(containerColor = DeepPlum, contentColor = Color.White),
+                            OutlinedButton(
+                                onClick = onToggleAddFeeStructureForm,
+                                colors = ButtonDefaults.outlinedButtonColors(containerColor = SoftLavenderBadge, contentColor = DeepPlum),
+                                border = BorderStroke(1.dp, CardBorder),
                                 shape = RoundedCornerShape(20.dp),
                                 modifier = Modifier.fillMaxWidth().height(48.dp)
                             ) {
-                                Text(text = "+ Add Program Fee Structure (Admin Only)", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = if (uiState.showAddFeeStructureForm) "Close Fee Form" else "+ Add Program Fee Structure & Credentials (Admin Only)",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = DeepPlum
+                                )
                             }
                         }
 
@@ -440,13 +617,19 @@ fun FeeManagementContent(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            Button(
+                            OutlinedButton(
                                 onClick = { },
-                                colors = ButtonDefaults.buttonColors(containerColor = DeepPlum, contentColor = Color.White),
+                                colors = ButtonDefaults.outlinedButtonColors(containerColor = SoftLavenderBadge, contentColor = DeepPlum),
+                                border = BorderStroke(1.dp, CardBorder),
                                 shape = RoundedCornerShape(20.dp),
                                 modifier = Modifier.fillMaxWidth().height(48.dp)
                             ) {
-                                Text(text = "Process Salary Calculation & Payouts", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = "Process Salary Calculation & Payouts",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = DeepPlum
+                                )
                             }
                         }
                     }
