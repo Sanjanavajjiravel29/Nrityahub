@@ -19,6 +19,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.IconButton
@@ -51,6 +53,7 @@ import com.simats.nritahub.ui.theme.DarkMaroonText
 import com.simats.nritahub.ui.theme.DeepPlum
 import com.simats.nritahub.ui.theme.MediumMaroonText
 import com.simats.nritahub.ui.theme.MutedBodyText
+import com.simats.nritahub.ui.theme.SoftLavenderBadge
 import com.simats.nritahub.ui.theme.NritahubTheme
 
 @Composable
@@ -76,6 +79,7 @@ fun FeeManagementScreen(
 
     FeeManagementContent(
         uiState = uiState,
+        onFeeViewModeSelect = viewModel::onFeeViewModeSelected,
         onTogglePaymentStatus = viewModel::togglePaymentStatus,
         onTabSelect = viewModel::onTabSelected,
         onBackClick = viewModel::onBackClicked
@@ -85,9 +89,10 @@ fun FeeManagementScreen(
 @Composable
 fun FeeManagementContent(
     uiState: FeeManagementUiState,
-    onTogglePaymentStatus: (String) -> Unit,
-    onTabSelect: (AdminTab) -> Unit,
-    onBackClick: () -> Unit
+    onFeeViewModeSelect: (FeeViewMode) -> Unit = {},
+    onTogglePaymentStatus: (String) -> Unit = {},
+    onTabSelect: (AdminTab) -> Unit = {},
+    onBackClick: () -> Unit = {}
 ) {
     Scaffold(
         containerColor = CreamBackground,
@@ -223,108 +228,226 @@ fun FeeManagementContent(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Student Fee Cards List
-                    uiState.studentFeeRecords.forEachIndexed { index, record ->
-                        Card(
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFAF6F2)),
-                            border = BorderStroke(1.dp, CardBorder),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
+                    // Mode Chips
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FeeViewMode.entries.forEach { mode ->
+                            val isSelected = uiState.activeViewMode == mode
+                            val chipBg = if (isSelected) DeepPlum else Color(0xFFF3ECE5)
+                            val chipTextColor = if (isSelected) Color.White else DarkMaroonText
+                            val label = if (mode == FeeViewMode.STUDENT_FEES) "Student Fees" else "Staff Salary"
+
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp)
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(chipBg)
+                                    .clickable { onFeeViewModeSelect(mode) }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                Text(
+                                    text = label,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = chipTextColor
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    when (uiState.activeViewMode) {
+                        FeeViewMode.STUDENT_FEES -> {
+                            // Student Fee Cards List
+                            uiState.studentFeeRecords.forEachIndexed { index, record ->
+                                Card(
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFAF6F2)),
+                                    border = BorderStroke(1.dp, CardBorder),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Column {
-                                        Text(
-                                            text = record.studentName,
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = DarkMaroonText
-                                        )
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = "Student ID: ${record.studentId}",
-                                            fontSize = 12.sp,
-                                            color = MutedBodyText
-                                        )
-                                    }
-
-                                    // Status Badge Pill (Paid / Unpaid)
-                                    val badgeBg = if (record.isPaid) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
-                                    val badgeText = if (record.isPaid) "Paid" else "Unpaid"
-                                    val badgeColor = if (record.isPaid) Color(0xFF2E7D32) else Color(0xFFC62828)
-
-                                    Box(
+                                    Column(
                                         modifier = Modifier
-                                            .background(badgeBg, shape = RoundedCornerShape(12.dp))
-                                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                                            .fillMaxWidth()
+                                            .padding(16.dp)
                                     ) {
-                                        Text(
-                                            text = badgeText,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = badgeColor
-                                        )
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column {
+                                                Text(
+                                                    text = record.studentName,
+                                                    fontSize = 16.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = DarkMaroonText
+                                                )
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = "${record.batchName} · ID: ${record.studentId}",
+                                                    fontSize = 12.sp,
+                                                    color = MutedBodyText
+                                                )
+                                            }
+
+                                            // Status Badge Pill
+                                            val badgeBg = if (record.isPaid) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
+                                            val badgeText = if (record.isPaid) "Paid" else "Unpaid"
+                                            val badgeColor = if (record.isPaid) Color(0xFF2E7D32) else Color(0xFFC62828)
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(badgeBg, shape = RoundedCornerShape(12.dp))
+                                                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                                            ) {
+                                                Text(
+                                                    text = badgeText,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = badgeColor
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(12.dp))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column {
+                                                Text(
+                                                    text = "Fee amount",
+                                                    fontSize = 11.sp,
+                                                    color = MutedBodyText
+                                                )
+                                                Text(
+                                                    text = record.feeAmount,
+                                                    fontFamily = FontFamily.Serif,
+                                                    fontSize = 20.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = DarkMaroonText
+                                                )
+                                            }
+
+                                            Switch(
+                                                checked = record.isPaid,
+                                                onCheckedChange = { onTogglePaymentStatus(record.studentId) },
+                                                colors = SwitchDefaults.colors(
+                                                    checkedThumbColor = Color.White,
+                                                    checkedTrackColor = Color(0xFF2E7D32),
+                                                    uncheckedThumbColor = Color.White,
+                                                    uncheckedTrackColor = Color(0xFFB0BEC5)
+                                                )
+                                            )
+                                        }
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(14.dp))
-
-                                Text(
-                                    text = "Fee amount",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = DarkMaroonText
-                                )
-
-                                Spacer(modifier = Modifier.height(2.dp))
-
-                                Text(
-                                    text = record.feeAmount,
-                                    fontFamily = FontFamily.Serif,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = DarkMaroonText
-                                )
-
-                                Spacer(modifier = Modifier.height(14.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "Payment status",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = DarkMaroonText
-                                    )
-
-                                    // Interactive Switch / Toggle Status
-                                    Switch(
-                                        checked = record.isPaid,
-                                        onCheckedChange = { onTogglePaymentStatus(record.studentId) },
-                                        colors = SwitchDefaults.colors(
-                                            checkedThumbColor = Color.White,
-                                            checkedTrackColor = Color(0xFF2E7D32),
-                                            uncheckedThumbColor = Color.White,
-                                            uncheckedTrackColor = Color(0xFFB0BEC5)
-                                        )
-                                    )
+                                if (index < uiState.studentFeeRecords.size - 1) {
+                                    Spacer(modifier = Modifier.height(12.dp))
                                 }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Button(
+                                onClick = { },
+                                colors = ButtonDefaults.buttonColors(containerColor = DeepPlum, contentColor = Color.White),
+                                shape = RoundedCornerShape(20.dp),
+                                modifier = Modifier.fillMaxWidth().height(48.dp)
+                            ) {
+                                Text(text = "+ Add Program Fee Structure (Admin Only)", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             }
                         }
 
-                        if (index < uiState.studentFeeRecords.size - 1) {
-                            Spacer(modifier = Modifier.height(12.dp))
+                        FeeViewMode.STAFF_SALARY -> {
+                            // Staff Salary Cards List
+                            uiState.staffSalaryRecords.forEachIndexed { index, record ->
+                                Card(
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFAF6F2)),
+                                    border = BorderStroke(1.dp, CardBorder),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column {
+                                                Text(
+                                                    text = record.staffName,
+                                                    fontSize = 16.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = DarkMaroonText
+                                                )
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = "${record.role} · ${record.activeBatches}",
+                                                    fontSize = 12.sp,
+                                                    color = MutedBodyText
+                                                )
+                                            }
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(SoftLavenderBadge, shape = RoundedCornerShape(12.dp))
+                                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                                            ) {
+                                                Text(
+                                                    text = record.payoutStatus,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = DeepPlum
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(12.dp))
+
+                                        Text(
+                                            text = "Calculated monthly salary",
+                                            fontSize = 11.sp,
+                                            color = MutedBodyText
+                                        )
+
+                                        Text(
+                                            text = record.calculatedSalary,
+                                            fontFamily = FontFamily.Serif,
+                                            fontSize = 22.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = DarkMaroonText
+                                        )
+                                    }
+                                }
+
+                                if (index < uiState.staffSalaryRecords.size - 1) {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Button(
+                                onClick = { },
+                                colors = ButtonDefaults.buttonColors(containerColor = DeepPlum, contentColor = Color.White),
+                                shape = RoundedCornerShape(20.dp),
+                                modifier = Modifier.fillMaxWidth().height(48.dp)
+                            ) {
+                                Text(text = "Process Salary Calculation & Payouts", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }

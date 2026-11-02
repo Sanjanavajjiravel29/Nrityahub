@@ -12,6 +12,10 @@ class FeeManagementViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(FeeManagementUiState())
     val uiState: StateFlow<FeeManagementUiState> = _uiState.asStateFlow()
 
+    fun onFeeViewModeSelected(mode: FeeViewMode) {
+        _uiState.update { it.copy(activeViewMode = mode) }
+    }
+
     fun togglePaymentStatus(studentId: String) {
         _uiState.update { currentState ->
             val updated = currentState.studentFeeRecords.map { record ->

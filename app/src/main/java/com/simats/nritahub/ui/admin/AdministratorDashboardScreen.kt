@@ -86,8 +86,11 @@ fun AdministratorDashboardScreen(
             }
             is AdministratorDashboardNavigationEvent.AttentionItemClicked -> {
                 when (event.actionType) {
-                    "attendance" -> onNavigateToSchedule()
-                    "overdue_fees" -> onNavigateToFees()
+                    "credentials", "nav_page_30", "create_student", "create_staff", "manage_rosters" -> onNavigateToBatches()
+                    "nav_page_31", "calculate_salary", "overdue_fees" -> onNavigateToFees()
+                    "nav_page_32", "admin_profile" -> onNavigateToProfile()
+                    "nav_schedule", "attendance" -> onNavigateToSchedule()
+                    "add_announcement" -> onNavigateToNotifications()
                     else -> {}
                 }
                 viewModel.onNavigationHandled()
@@ -174,80 +177,6 @@ fun AdministratorDashboardContent(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 12.dp)
         ) {
-            // Header Bar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(SoftLavenderBadge),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Canvas(modifier = Modifier.size(12.dp)) {
-                            val w = size.width
-                            val h = size.height
-                            drawPath(
-                                path = Path().apply {
-                                    moveTo(w * 0.5f, 0f)
-                                    lineTo(w, h * 0.35f)
-                                    lineTo(0f, h * 0.35f)
-                                    close()
-                                },
-                                color = DeepPlum
-                            )
-                            drawLine(color = DeepPlum, start = Offset(w * 0.25f, h * 0.45f), end = Offset(w * 0.25f, h * 0.9f), strokeWidth = 2f)
-                            drawLine(color = DeepPlum, start = Offset(w * 0.75f, h * 0.45f), end = Offset(w * 0.75f, h * 0.9f), strokeWidth = 2f)
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "${uiState.headerNumber} / NRITYAHUB · ADMINISTRATOR DASHBOARD",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.8.sp,
-                        color = MediumMaroonText
-                    )
-                }
-
-                // Bell Notification Icon
-                IconButton(
-                    onClick = onNotificationsClick,
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Canvas(modifier = Modifier.size(18.dp)) {
-                        val w = size.width
-                        val h = size.height
-                        drawPath(
-                            path = Path().apply {
-                                moveTo(w * 0.5f, 0f)
-                                cubicTo(w * 0.2f, h * 0.1f, w * 0.1f, h * 0.5f, w * 0.1f, h * 0.75f)
-                                lineTo(w * 0.9f, h * 0.75f)
-                                cubicTo(w * 0.9f, h * 0.5f, w * 0.8f, h * 0.1f, w * 0.5f, 0f)
-                            },
-                            color = DeepPlum,
-                            style = Stroke(width = 1.5.dp.toPx())
-                        )
-                        drawLine(color = DeepPlum, start = Offset(0f, h * 0.75f), end = Offset(w, h * 0.75f), strokeWidth = 1.5.dp.toPx())
-                        drawArc(
-                            color = DeepPlum,
-                            startAngle = 0f,
-                            sweepAngle = 180f,
-                            useCenter = false,
-                            topLeft = Offset(w * 0.35f, h * 0.75f),
-                            size = Size(w * 0.3f, h * 0.25f),
-                            style = Stroke(width = 1.5.dp.toPx())
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
             // Main Greeting Title
             Text(
                 text = uiState.title,
@@ -358,7 +287,7 @@ fun AdministratorDashboardContent(
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                text = uiState.classesPerWeekCount,
+                                text = uiState.activeStaffCount,
                                 fontFamily = FontFamily.Serif,
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Bold,
@@ -366,7 +295,7 @@ fun AdministratorDashboardContent(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Classes / week",
+                                text = "Active staff / instructors",
                                 fontSize = 11.sp,
                                 color = MutedBodyText
                             )
@@ -381,15 +310,15 @@ fun AdministratorDashboardContent(
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                text = uiState.septemberAttendancePercentage,
+                                text = uiState.calculatedSalaryTotal,
                                 fontFamily = FontFamily.Serif,
-                                fontSize = 28.sp,
+                                fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = DarkMaroonText
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "September attendance",
+                                text = "Staff salary calculation",
                                 fontSize = 11.sp,
                                 color = MutedBodyText
                             )

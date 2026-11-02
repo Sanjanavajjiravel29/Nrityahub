@@ -70,8 +70,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun NrityaHubApp() {
-    // Set to Screen.InstructorProfile so it launches immediately on device
-    var currentScreen by remember { mutableStateOf(Screen.InstructorProfile) }
+    // Set to Screen.AdministratorDashboard so it launches immediately on device (Page 29)
+    var currentScreen by remember { mutableStateOf(Screen.AdministratorDashboard) }
 
     when (currentScreen) {
         Screen.Splash -> {
