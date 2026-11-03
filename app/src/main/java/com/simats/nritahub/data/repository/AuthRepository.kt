@@ -66,6 +66,18 @@ class AuthRepository(
         }
     }
 
+    /**
+     * Calls the server to revoke the active Bearer token.
+     */
+    suspend fun logout(): Boolean {
+        return try {
+            val response = authApiService.logout()
+            response.isSuccessful
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     private fun parseErrorMessage(errorBody: String?): String? {
         if (errorBody.isNullOrBlank()) return null
         return try {
@@ -76,4 +88,3 @@ class AuthRepository(
         }
     }
 }
-

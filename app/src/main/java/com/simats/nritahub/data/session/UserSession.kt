@@ -2,8 +2,8 @@ package com.simats.nritahub.data.session
 
 /**
  * Immutable model representing an active authenticated user session.
- * Contains user identification and role information used for routing and dashboards.
- * Passwords and invented auth tokens are strictly NOT stored.
+ * Contains user identification, role information, and the cryptographic Bearer authentication token.
+ * Passwords are strictly NOT stored.
  */
 data class UserSession(
     val id: Int,
@@ -11,6 +11,8 @@ data class UserSession(
     val email: String,
     val username: String?,
     val role: String,
+    val authToken: String? = null,
+    val expiresAt: String? = null,
     val staffRole: String? = null,
     val monthlySalary: String? = null,
     val batchId: Int? = null,
@@ -18,4 +20,3 @@ data class UserSession(
     val bio: String? = null,
     val profileImageUrl: String? = null
 )
-

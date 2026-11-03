@@ -1,9 +1,8 @@
 package com.simats.nritahub
 
 import com.google.gson.Gson
-import com.simats.nritahub.data.remote.dto.LoginRequest
+import com.simats.nritahub.data.remote.dto.AdminDashboardStatsResponse
 import com.simats.nritahub.data.remote.dto.LoginResponse
-import com.simats.nritahub.data.remote.dto.UserDto
 import com.simats.nritahub.data.repository.AuthRepository
 import com.simats.nritahub.data.repository.AuthResult
 import kotlinx.coroutines.runBlocking
@@ -17,7 +16,7 @@ class AuthIntegrationUnitTest {
     private val gson = Gson()
 
     @Test
-    fun testLoginResponseParsing_admin() {
+    fun testLoginResponseParsing_adminWithToken() {
         val json = """
             {
                 "success": true,
@@ -31,7 +30,9 @@ class AuthIntegrationUnitTest {
                     "staff_role": "Founder & Chief Administrator",
                     "monthly_salary": "₹65,000 / mo"
                 },
-                "role": "admin"
+                "role": "admin",
+                "token": "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90",
+                "expires_at": "2026-12-03 14:00:00"
             }
         """.trimIndent()
 
@@ -41,39 +42,55 @@ class AuthIntegrationUnitTest {
         assertEquals(10, response.user?.id)
         assertEquals("Dr. Rukmini Devi", response.user?.fullName)
         assertEquals("Founder & Chief Administrator", response.user?.staffRole)
+        assertEquals(64, response.token?.length)
+        assertNotNull(response.expiresAt)
     }
 
     @Test
-    fun testLoginResponseParsing_studentWithBatch() {
+    fun testAdminDashboardStatsResponseParsing() {
         val json = """
             {
                 "success": true,
-                "message": "Login successful.",
-                "user": {
-                    "id": 21,
-                    "full_name": "Arjun Varma",
-                    "username": "arjun.varma",
-                    "email": "arjun.varma@nritahub.com",
-                    "role": "student",
-                    "batch_id": 1,
-                    "batch_name": "Bharatanatyam - Foundation F1",
-                    "dance_style": "Bharatanatyam",
-                    "level": "Foundation",
-                    "days": "Tue, Thu, Sat"
+                "message": "Admin dashboard statistics retrieved successfully.",
+                "overview_badge": "ADMIN CONTROL PANEL",
+                "enrolled_students_count": "156",
+                "active_staff_count": "6",
+                "active_batches_count": "8",
+                "calculated_salary_total": "₹1,80,000",
+                "fee_collection": {
+                    "title": "November fee collection",
+                    "fee_percentage_text": "71% collected",
+                    "total_collected_amount": "₹1,32,000",
+                    "total_billed_text": "of ₹1,87,200 billed · 78 invoices",
+                    "collection_progress": 0.71,
+                    "pending_amount_text": "Pending ₹43,200",
+                    "overdue_amount_text": "Overdue ₹12,000"
                 },
-                "role": "student"
+                "quick_controls": [
+                    {
+                        "title": "Manage Batches & Name Lists",
+                        "subtitle": "Student & staff rosters",
+                        "action": "batches"
+                    }
+                ],
+                "recital_notice": "Program Announcement: Autumn Recital 2026"
             }
         """.trimIndent()
 
-        val response = gson.fromJson(json, LoginResponse::class.java)
+        val response = gson.fromJson(json, AdminDashboardStatsResponse::class.java)
         assertTrue(response.success)
-        assertEquals("student", response.role)
-        assertEquals("Bharatanatyam - Foundation F1", response.user?.batchName)
-        assertEquals(1, response.user?.batchId)
+        assertEquals("ADMIN CONTROL PANEL", response.overviewBadge)
+        assertEquals("156", response.enrolledStudentsCount)
+        assertEquals("6", response.activeStaffCount)
+        assertEquals("8", response.activeBatchesCount)
+        assertEquals("₹1,80,000", response.calculatedSalaryTotal)
+        assertEquals("November fee collection", response.feeCollection?.title)
+        assertEquals(0.71f, response.feeCollection?.collectionProgress ?: 0f, 0.001f)
+        assertEquals(1, response.quickControls?.size)
     }
 
     @Test
-    fun testLiveApi_adminLogin() = runBlocking {
+    fun testLiveApi_adminLoginIssuesToken() = runBlocking {
         val repository = AuthRepository()
         val result = repository.login("rukmini.admin", "Password123!")
 
@@ -81,10 +98,12 @@ class AuthIntegrationUnitTest {
         val success = result as AuthResult.Success
         assertEquals("admin", success.response.role?.lowercase())
         assertEquals("Dr. Rukmini Devi", success.response.user?.fullName)
+        assertNotNull("Admin login must return a token", success.response.token)
+        assertEquals("Token should be 64-char hex", 64, success.response.token?.length)
     }
 
     @Test
-    fun testLiveApi_instructorLogin() = runBlocking {
+    fun testLiveApi_instructorLoginIssuesToken() = runBlocking {
         val repository = AuthRepository()
         val result = repository.login("meera.iyer", "Password123!")
 
@@ -92,10 +111,12 @@ class AuthIntegrationUnitTest {
         val success = result as AuthResult.Success
         assertEquals("instructor", success.response.role?.lowercase())
         assertEquals("Meera Iyer", success.response.user?.fullName)
+        assertNotNull("Instructor login must return a token", success.response.token)
+        assertEquals("Token should be 64-char hex", 64, success.response.token?.length)
     }
 
     @Test
-    fun testLiveApi_studentLogin() = runBlocking {
+    fun testLiveApi_studentLoginIssuesToken() = runBlocking {
         val repository = AuthRepository()
         val result = repository.login("arjun.varma", "Password123!")
 
@@ -103,11 +124,13 @@ class AuthIntegrationUnitTest {
         val success = result as AuthResult.Success
         assertEquals("student", success.response.role?.lowercase())
         assertEquals("Arjun Varma", success.response.user?.fullName)
+        assertNotNull("Student login must return a token", success.response.token)
+        assertEquals("Token should be 64-char hex", 64, success.response.token?.length)
         assertNotNull(success.response.user?.batchName)
     }
 
     @Test
-    fun testLiveApi_invalidCredentials() = runBlocking {
+    fun testLiveApi_invalidCredentialsRejected() = runBlocking {
         val repository = AuthRepository()
         val result = repository.login("nonexistent.user", "WrongPassword123!")
 
@@ -119,4 +142,3 @@ class AuthIntegrationUnitTest {
         )
     }
 }
-

@@ -3,7 +3,8 @@ package com.simats.nritahub.data.remote.dto
 import com.google.gson.annotations.SerializedName
 
 /**
- * Standard backend response payload for the login endpoint.
+ * Encapsulates the response from POST auth/login.php.
+ * Returns the authenticated user's profile, role, and the cryptographic Bearer token.
  */
 data class LoginResponse(
     @SerializedName("success")
@@ -16,6 +17,11 @@ data class LoginResponse(
     val user: UserDto? = null,
 
     @SerializedName("role")
-    val role: String? = null
-)
+    val role: String? = null,
 
+    @SerializedName("token")
+    val token: String? = null,
+
+    @SerializedName("expires_at")
+    val expiresAt: String? = null
+)

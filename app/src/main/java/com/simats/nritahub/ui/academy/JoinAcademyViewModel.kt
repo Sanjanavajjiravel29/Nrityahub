@@ -80,13 +80,15 @@ class JoinAcademyViewModel(
 
                     val validRoles = listOf("admin", "instructor", "student")
                     if (user != null && role in validRoles) {
-                        // Save session securely (no password, no fake token)
+                        // Save session securely with the cryptographic Bearer token
                         sessionManager?.saveSession(
                             id = user.id,
                             fullName = user.fullName,
                             email = user.email,
                             username = user.username,
                             role = role,
+                            authToken = result.response.token,
+                            expiresAt = result.response.expiresAt,
                             staffRole = user.staffRole,
                             monthlySalary = user.monthlySalary,
                             batchId = user.batchId,

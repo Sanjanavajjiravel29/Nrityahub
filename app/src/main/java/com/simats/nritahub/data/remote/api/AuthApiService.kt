@@ -7,17 +7,15 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 
 /**
- * Retrofit interface for authentication operations.
+ * Retrofit service definition for authentication endpoints.
  */
 interface AuthApiService {
 
-    /**
-     * Authenticates an Admin, Instructor, or Student.
-     * Expects JSON body with "identifier" and "password".
-     */
     @POST("auth/login.php")
     suspend fun login(
         @Body request: LoginRequest
     ): Response<LoginResponse>
-}
 
+    @POST("auth/logout.php")
+    suspend fun logout(): Response<Map<String, Any>>
+}

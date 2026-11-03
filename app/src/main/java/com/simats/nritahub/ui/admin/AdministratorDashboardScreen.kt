@@ -24,6 +24,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -115,7 +116,8 @@ fun AdministratorDashboardScreen(
         onManageCollectionsClick = viewModel::onManageCollectionsClicked,
         onManageSchedulesClick = viewModel::onManageSchedulesClicked,
         onAttentionItemClick = viewModel::onAttentionItemClicked,
-        onNotificationsClick = viewModel::onNotificationsClicked
+        onNotificationsClick = viewModel::onNotificationsClicked,
+        onRetryClick = viewModel::fetchDashboardStats
     )
 }
 
@@ -126,7 +128,8 @@ fun AdministratorDashboardContent(
     onManageCollectionsClick: () -> Unit,
     onManageSchedulesClick: () -> Unit,
     onAttentionItemClick: (String) -> Unit,
-    onNotificationsClick: () -> Unit
+    onNotificationsClick: () -> Unit,
+    onRetryClick: () -> Unit = {}
 ) {
     Scaffold(
         containerColor = CreamBackground,
@@ -216,6 +219,50 @@ fun AdministratorDashboardContent(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            if (uiState.isLoading) {
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp),
+                    color = DeepPlum,
+                    trackColor = SoftLavenderBadge
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
+            if (uiState.errorMessage != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFBEBEB)),
+                    border = BorderStroke(1.dp, Color(0xFFE57373))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = uiState.errorMessage,
+                            color = Color(0xFFB71C1C),
+                            fontSize = 12.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Retry",
+                            color = DeepPlum,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            modifier = Modifier.clickable { onRetryClick() }
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
             // Summary Stats Grid (2x2 Grid)
             Column(
