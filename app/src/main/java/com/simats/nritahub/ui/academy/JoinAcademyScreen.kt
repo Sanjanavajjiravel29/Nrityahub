@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -40,6 +41,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +51,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.nritahub.R
+import com.simats.nritahub.data.session.UserSessionManager
 import com.simats.nritahub.ui.theme.CardBackground
 import com.simats.nritahub.ui.theme.CardBorder
 import com.simats.nritahub.ui.theme.CreamBackground
@@ -60,19 +63,24 @@ import com.simats.nritahub.ui.theme.NritahubTheme
 fun JoinAcademyScreen(
     viewModel: JoinAcademyViewModel = remember { JoinAcademyViewModel() },
     onBackToSplash: () -> Unit,
-    onSignInSuccess: () -> Unit,
+    onSignInSuccess: (role: String) -> Unit,
     onNavigateToSignUp: () -> Unit
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
 
+    LaunchedEffect(Unit) {
+        viewModel.setSessionManager(UserSessionManager.getInstance(context))
+    }
+
     LaunchedEffect(uiState.navigationEvent) {
-        when (uiState.navigationEvent) {
+        when (val event = uiState.navigationEvent) {
             JoinAcademyNavigationEvent.NavigateBack -> {
                 onBackToSplash()
                 viewModel.onNavigationHandled()
             }
-            JoinAcademyNavigationEvent.SignInSuccess -> {
-                onSignInSuccess()
+            is JoinAcademyNavigationEvent.SignInSuccess -> {
+                onSignInSuccess(event.role)
                 viewModel.onNavigationHandled()
             }
             JoinAcademyNavigationEvent.NavigateToSignUp -> {
@@ -246,6 +254,7 @@ fun JoinAcademyContent(
                     OutlinedTextField(
                         value = uiState.usernameOrEmail,
                         onValueChange = onUsernameOrEmailChange,
+                        enabled = !uiState.isLoading,
                         placeholder = { Text("e.g. ananya@example.com", fontSize = 13.sp, color = Color.Gray) },
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp),
@@ -273,6 +282,7 @@ fun JoinAcademyContent(
                     OutlinedTextField(
                         value = uiState.password,
                         onValueChange = onPasswordChange,
+                        enabled = !uiState.isLoading,
                         placeholder = { Text("Enter your password", fontSize = 13.sp, color = Color.Gray) },
                         singleLine = true,
                         visualTransformation = if (uiState.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -287,7 +297,7 @@ fun JoinAcademyContent(
                             Box(
                                 modifier = Modifier
                                     .size(24.dp)
-                                    .clickable { onTogglePasswordVisibility() },
+                                    .clickable(enabled = !uiState.isLoading) { onTogglePasswordVisibility() },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Canvas(modifier = Modifier.size(18.dp)) {
@@ -321,60 +331,92 @@ fun JoinAcademyContent(
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
-                            modifier = Modifier.clickable { onForgotPasswordClick() }
+                            modifier = Modifier.clickable(enabled = !uiState.isLoading) { onForgotPasswordClick() }
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Error Message Banner
+                    if (uiState.errorMessage != null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFB00020).copy(alpha = 0.85f))
+                                .padding(horizontal = 14.dp, vertical = 10.dp)
+                        ) {
+                            Text(
+                                text = uiState.errorMessage,
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(14.dp))
+                    } else {
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
 
                     // Primary Action Button ("Log in" in Dark Maroon with Bold White Text)
                     Button(
                         onClick = onSignInClick,
+                        enabled = !uiState.isLoading,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = DarkMaroonText,
-                            contentColor = Color.White
+                            contentColor = Color.White,
+                            disabledContainerColor = DarkMaroonText.copy(alpha = 0.6f),
+                            disabledContentColor = Color.White.copy(alpha = 0.8f)
                         ),
                         shape = RoundedCornerShape(26.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(54.dp)
                     ) {
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Log in",
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White,
+                                strokeWidth = 2.5.dp
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Canvas(modifier = Modifier.size(16.dp)) {
-                                val w = size.width
-                                val h = size.height
-                                val stroke = 2.dp.toPx()
-                                drawLine(
-                                    color = Color.White,
-                                    start = Offset(0f, h / 2),
-                                    end = Offset(w, h / 2),
-                                    strokeWidth = stroke,
-                                    cap = StrokeCap.Round
+                        } else {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Log in",
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
                                 )
-                                drawLine(
-                                    color = Color.White,
-                                    start = Offset(w * 0.6f, h * 0.2f),
-                                    end = Offset(w, h / 2),
-                                    strokeWidth = stroke,
-                                    cap = StrokeCap.Round
-                                )
-                                drawLine(
-                                    color = Color.White,
-                                    start = Offset(w * 0.6f, h * 0.8f),
-                                    end = Offset(w, h / 2),
-                                    strokeWidth = stroke,
-                                    cap = StrokeCap.Round
-                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Canvas(modifier = Modifier.size(16.dp)) {
+                                    val w = size.width
+                                    val h = size.height
+                                    val stroke = 2.dp.toPx()
+                                    drawLine(
+                                        color = Color.White,
+                                        start = Offset(0f, h / 2),
+                                        end = Offset(w, h / 2),
+                                        strokeWidth = stroke,
+                                        cap = StrokeCap.Round
+                                    )
+                                    drawLine(
+                                        color = Color.White,
+                                        start = Offset(w * 0.6f, h * 0.2f),
+                                        end = Offset(w, h / 2),
+                                        strokeWidth = stroke,
+                                        cap = StrokeCap.Round
+                                    )
+                                    drawLine(
+                                        color = Color.White,
+                                        start = Offset(w * 0.6f, h * 0.8f),
+                                        end = Offset(w, h / 2),
+                                        strokeWidth = stroke,
+                                        cap = StrokeCap.Round
+                                    )
+                                }
                             }
                         }
                     }

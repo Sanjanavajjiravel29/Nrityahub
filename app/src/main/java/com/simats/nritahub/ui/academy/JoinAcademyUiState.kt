@@ -5,7 +5,7 @@ sealed interface JoinAcademyNavigationEvent {
     data object NavigateBack : JoinAcademyNavigationEvent
     data object NavigateToSignUp : JoinAcademyNavigationEvent
     data object ForgotPassword : JoinAcademyNavigationEvent
-    data object SignInSuccess : JoinAcademyNavigationEvent
+    data class SignInSuccess(val role: String) : JoinAcademyNavigationEvent
 }
 
 data class JoinAcademyUiState(
@@ -16,5 +16,7 @@ data class JoinAcademyUiState(
     val password: String = "",
     val isPasswordVisible: Boolean = false,
     val academyName: String = "SRI KANCHI SHETHIRA KALA MANDIR",
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null,
     val navigationEvent: JoinAcademyNavigationEvent = JoinAcademyNavigationEvent.None
 )

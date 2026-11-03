@@ -9,6 +9,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import com.simats.nritahub.data.session.UserSessionManager
 import com.simats.nritahub.ui.academy.JoinAcademyScreen
 import com.simats.nritahub.ui.admin.AdministratorDashboardScreen
 import com.simats.nritahub.ui.adminprofile.AdministratorProfileScreen
@@ -70,8 +72,24 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun NrityaHubApp() {
-    // Set to Screen.AdministratorDashboard so it launches immediately on device (Page 29)
-    var currentScreen by remember { mutableStateOf(Screen.AdministratorDashboard) }
+    val context = LocalContext.current
+    val sessionManager = remember { UserSessionManager.getInstance(context) }
+
+    // Start screen: if user already has an active session, direct to their dashboard; otherwise default to JoinAcademy
+    val initialScreen = remember {
+        if (sessionManager.isLoggedIn()) {
+            when (sessionManager.getUserRole()?.lowercase()?.trim()) {
+                "admin" -> Screen.AdministratorDashboard
+                "instructor" -> Screen.InstructorDashboard
+                "student" -> Screen.StudentHome
+                else -> Screen.JoinAcademy
+            }
+        } else {
+            Screen.JoinAcademy
+        }
+    }
+
+    var currentScreen by remember { mutableStateOf(initialScreen) }
 
     when (currentScreen) {
         Screen.Splash -> {
@@ -83,8 +101,15 @@ fun NrityaHubApp() {
         Screen.JoinAcademy -> {
             JoinAcademyScreen(
                 onBackToSplash = { currentScreen = Screen.Splash },
-                onSignInSuccess = { currentScreen = Screen.StudentHome },
-                onNavigateToSignUp = { currentScreen = Screen.StudentHome }
+                onSignInSuccess = { role ->
+                    currentScreen = when (role.lowercase().trim()) {
+                        "admin" -> Screen.AdministratorDashboard
+                        "instructor" -> Screen.InstructorDashboard
+                        "student" -> Screen.StudentHome
+                        else -> Screen.StudentHome
+                    }
+                },
+                onNavigateToSignUp = { /* Disabled: accounts are created by administrator */ }
             )
         }
         Screen.StudentHome -> {
@@ -178,7 +203,10 @@ fun NrityaHubApp() {
         Screen.InstructorProfile -> {
             InstructorProfileScreen(
                 onNavigateToToday = { currentScreen = Screen.InstructorDashboard },
-                onSignOut = { currentScreen = Screen.Splash }
+                onSignOut = {
+                    sessionManager.clearSession()
+                    currentScreen = Screen.JoinAcademy
+                }
             )
         }
         Screen.AdministratorDashboard -> {
@@ -203,7 +231,10 @@ fun NrityaHubApp() {
         Screen.AdministratorProfile -> {
             AdministratorProfileScreen(
                 onNavigateToOverview = { currentScreen = Screen.AdministratorDashboard },
-                onSignOut = { currentScreen = Screen.Splash }
+                onSignOut = {
+                    sessionManager.clearSession()
+                    currentScreen = Screen.JoinAcademy
+                }
             )
         }
         Screen.Home -> {

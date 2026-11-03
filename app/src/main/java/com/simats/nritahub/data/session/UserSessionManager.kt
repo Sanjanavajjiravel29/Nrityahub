@@ -1,0 +1,136 @@
+package com.simats.nritahub.data.session
+
+import android.content.Context
+import android.content.SharedPreferences
+
+/**
+ * Manages local persistence of the logged-in user's profile and role.
+ *
+ * Architecture Note on Authentication:
+ * The current backend verifies credentials and returns the user object and role,
+ * but does not issue a JWT or Bearer session token. Therefore, this session manager
+ * tracks the user's authenticated state based on verified profile data (ID, email, role).
+ * No passwords are stored, and no pseudo-tokens are invented.
+ */
+class UserSessionManager(context: Context) {
+
+    private val prefs: SharedPreferences =
+        context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    companion object {
+        private const val PREFS_NAME = "nrityahub_user_session"
+        private const val KEY_IS_LOGGED_IN = "is_logged_in"
+        private const val KEY_USER_ID = "user_id"
+        private const val KEY_FULL_NAME = "full_name"
+        private const val KEY_EMAIL = "email"
+        private const val KEY_USERNAME = "username"
+        private const val KEY_ROLE = "role"
+        private const val KEY_STAFF_ROLE = "staff_role"
+        private const val KEY_MONTHLY_SALARY = "monthly_salary"
+        private const val KEY_BATCH_ID = "batch_id"
+        private const val KEY_BATCH_NAME = "batch_name"
+        private const val KEY_BIO = "bio"
+        private const val KEY_PROFILE_IMAGE_URL = "profile_image_url"
+
+        @Volatile
+        private var instance: UserSessionManager? = null
+
+        fun getInstance(context: Context): UserSessionManager {
+            return instance ?: synchronized(this) {
+                instance ?: UserSessionManager(context.applicationContext).also { instance = it }
+            }
+        }
+    }
+
+    /**
+     * Saves authenticated user session details upon successful login.
+     * Does not store passwords.
+     */
+    fun saveSession(
+        id: Int,
+        fullName: String,
+        email: String,
+        username: String? = null,
+        role: String,
+        staffRole: String? = null,
+        monthlySalary: String? = null,
+        batchId: Int? = null,
+        batchName: String? = null,
+        bio: String? = null,
+        profileImageUrl: String? = null
+    ) {
+        prefs.edit().apply {
+            putBoolean(KEY_IS_LOGGED_IN, true)
+            putInt(KEY_USER_ID, id)
+            putString(KEY_FULL_NAME, fullName)
+            putString(KEY_EMAIL, email)
+            putString(KEY_USERNAME, username)
+            putString(KEY_ROLE, role.lowercase().trim())
+            putString(KEY_STAFF_ROLE, staffRole)
+            putString(KEY_MONTHLY_SALARY, monthlySalary)
+            if (batchId != null) putInt(KEY_BATCH_ID, batchId) else remove(KEY_BATCH_ID)
+            putString(KEY_BATCH_NAME, batchName)
+            putString(KEY_BIO, bio)
+            putString(KEY_PROFILE_IMAGE_URL, profileImageUrl)
+            apply()
+        }
+    }
+
+    /**
+     * Checks whether an active user session exists.
+     */
+    fun isLoggedIn(): Boolean {
+        return prefs.getBoolean(KEY_IS_LOGGED_IN, false) && getUserId() > 0
+    }
+
+    /**
+     * Returns the current logged-in user's role ("admin", "instructor", "student").
+     */
+    fun getUserRole(): String? {
+        return prefs.getString(KEY_ROLE, null)
+    }
+
+    fun isAdmin(): Boolean = getUserRole().equals("admin", ignoreCase = true)
+    fun isInstructor(): Boolean = getUserRole().equals("instructor", ignoreCase = true)
+    fun isStudent(): Boolean = getUserRole().equals("student", ignoreCase = true)
+
+    fun getUserId(): Int = prefs.getInt(KEY_USER_ID, -1)
+    fun getFullName(): String? = prefs.getString(KEY_FULL_NAME, null)
+    fun getEmail(): String? = prefs.getString(KEY_EMAIL, null)
+    fun getUsername(): String? = prefs.getString(KEY_USERNAME, null)
+    fun getBatchId(): Int? = if (prefs.contains(KEY_BATCH_ID)) prefs.getInt(KEY_BATCH_ID, -1) else null
+    fun getBatchName(): String? = prefs.getString(KEY_BATCH_NAME, null)
+    fun getStaffRole(): String? = prefs.getString(KEY_STAFF_ROLE, null)
+    fun getMonthlySalary(): String? = prefs.getString(KEY_MONTHLY_SALARY, null)
+    fun getBio(): String? = prefs.getString(KEY_BIO, null)
+    fun getProfileImageUrl(): String? = prefs.getString(KEY_PROFILE_IMAGE_URL, null)
+
+    /**
+     * Retrieves full session details as an immutable [UserSession] object.
+     * Returns null if no active session is present.
+     */
+    fun getSession(): UserSession? {
+        if (!isLoggedIn()) return null
+        return UserSession(
+            id = getUserId(),
+            fullName = getFullName().orEmpty(),
+            email = getEmail().orEmpty(),
+            username = getUsername(),
+            role = getUserRole().orEmpty(),
+            staffRole = getStaffRole(),
+            monthlySalary = getMonthlySalary(),
+            batchId = getBatchId(),
+            batchName = getBatchName(),
+            bio = getBio(),
+            profileImageUrl = getProfileImageUrl()
+        )
+    }
+
+    /**
+     * Clears all session data during user logout.
+     */
+    fun clearSession() {
+        prefs.edit().clear().apply()
+    }
+}
+
