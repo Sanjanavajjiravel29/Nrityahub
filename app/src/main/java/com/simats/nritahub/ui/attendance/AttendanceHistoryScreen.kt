@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -74,6 +75,7 @@ fun AttendanceHistoryScreen(
 
     AttendanceHistoryContent(
         uiState = uiState,
+        onRefreshClick = viewModel::refresh,
         onBackClick = viewModel::onBackClicked
     )
 }
@@ -81,7 +83,8 @@ fun AttendanceHistoryScreen(
 @Composable
 fun AttendanceHistoryContent(
     uiState: AttendanceHistoryUiState,
-    onBackClick: () -> Unit
+    onRefreshClick: () -> Unit = {},
+    onBackClick: () -> Unit = {}
 ) {
     Scaffold(
         containerColor = CreamBackground
@@ -93,54 +96,73 @@ fun AttendanceHistoryContent(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 12.dp)
         ) {
-            // Header Bar with Back Button only
+            // Header Bar with Back Button and Refresh Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = onBackClick,
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Canvas(modifier = Modifier.size(16.dp)) {
-                            val w = size.width
-                            val h = size.height
-                            val stroke = 2.dp.toPx()
-                            drawLine(
-                                color = DeepPlum,
-                                start = Offset(w, h / 2),
-                                end = Offset(0f, h / 2),
-                                strokeWidth = stroke,
-                                cap = StrokeCap.Round
-                            )
-                            drawLine(
-                                color = DeepPlum,
-                                start = Offset(w * 0.4f, h * 0.2f),
-                                end = Offset(0f, h / 2),
-                                strokeWidth = stroke,
-                                cap = StrokeCap.Round
-                            )
-                            drawLine(
-                                color = DeepPlum,
-                                start = Offset(w * 0.4f, h * 0.8f),
-                                end = Offset(0f, h / 2),
-                                strokeWidth = stroke,
-                                cap = StrokeCap.Round
-                            )
-                        }
+                IconButton(
+                    onClick = onBackClick,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Canvas(modifier = Modifier.size(16.dp)) {
+                        val w = size.width
+                        val h = size.height
+                        val stroke = 2.dp.toPx()
+                        drawLine(
+                            color = DeepPlum,
+                            start = Offset(w, h / 2),
+                            end = Offset(0f, h / 2),
+                            strokeWidth = stroke,
+                            cap = StrokeCap.Round
+                        )
+                        drawLine(
+                            color = DeepPlum,
+                            start = Offset(w * 0.4f, h * 0.2f),
+                            end = Offset(0f, h / 2),
+                            strokeWidth = stroke,
+                            cap = StrokeCap.Round
+                        )
+                        drawLine(
+                            color = DeepPlum,
+                            start = Offset(w * 0.4f, h * 0.8f),
+                            end = Offset(0f, h / 2),
+                            strokeWidth = stroke,
+                            cap = StrokeCap.Round
+                        )
                     }
                 }
 
-                // Three dots trailing icon
-                Canvas(modifier = Modifier.size(16.dp)) {
-                    val r = 1.8.dp.toPx()
-                    val centerY = size.height / 2
-                    val w = size.width
-                    drawCircle(color = DeepPlum, radius = r, center = Offset(w * 0.2f, centerY))
-                    drawCircle(color = DeepPlum, radius = r, center = Offset(w * 0.5f, centerY))
-                    drawCircle(color = DeepPlum, radius = r, center = Offset(w * 0.8f, centerY))
+                // Refresh Button
+                IconButton(
+                    onClick = onRefreshClick,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Canvas(modifier = Modifier.size(18.dp)) {
+                        val stroke = 2.dp.toPx()
+                        drawArc(
+                            color = DeepPlum,
+                            startAngle = 45f,
+                            sweepAngle = 270f,
+                            useCenter = false,
+                            style = Stroke(width = stroke, cap = StrokeCap.Round)
+                        )
+                        drawLine(
+                            color = DeepPlum,
+                            start = Offset(size.width * 0.8f, size.height * 0.35f),
+                            end = Offset(size.width * 0.95f, size.height * 0.5f),
+                            strokeWidth = stroke,
+                            cap = StrokeCap.Round
+                        )
+                        drawLine(
+                            color = DeepPlum,
+                            start = Offset(size.width * 0.95f, size.height * 0.5f),
+                            end = Offset(size.width * 0.75f, size.height * 0.65f),
+                            strokeWidth = stroke,
+                            cap = StrokeCap.Round
+                        )
+                    }
                 }
             }
 
@@ -155,6 +177,40 @@ fun AttendanceHistoryContent(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            // Error banner if any
+            if (uiState.errorMessage != null) {
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+                    border = BorderStroke(1.dp, Color(0xFFEF9A9A)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = uiState.errorMessage,
+                            color = Color(0xFFC62828),
+                            fontSize = 13.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Retry",
+                            color = DeepPlum,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            modifier = Modifier.clickable { onRefreshClick() }
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
             // Attendance Rate Overview Card
             Card(
@@ -246,7 +302,7 @@ fun AttendanceHistoryContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // September Class Records Section
+            // Class Records Section Header
             Text(
                 text = uiState.recordsTitle,
                 fontFamily = FontFamily.Serif,
@@ -256,62 +312,113 @@ fun AttendanceHistoryContent(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBackground),
-                border = BorderStroke(1.dp, CardBorder),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    uiState.classRecords.forEachIndexed { index, record ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = record.dateAndTime,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = DarkMaroonText
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = record.instructorAndStudio,
-                                    fontSize = 12.sp,
-                                    color = MutedBodyText
-                                )
-                            }
-
-                            // Status Badge Pill
-                            val isPresent = record.status == AttendanceStatus.PRESENT
-                            val badgeBg = if (isPresent) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
-                            val badgeColor = if (isPresent) Color(0xFF2E7D32) else Color(0xFFC62828)
-                            val label = if (isPresent) "Present" else "Absent"
-
-                            Box(
+            if (uiState.isLoading) {
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardBackground),
+                    border = BorderStroke(1.dp, CardBorder),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            color = DeepPlum,
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Loading attendance history...",
+                            fontSize = 13.sp,
+                            color = MutedBodyText
+                        )
+                    }
+                }
+            } else if (uiState.classRecords.isEmpty()) {
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardBackground),
+                    border = BorderStroke(1.dp, CardBorder),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No attendance records recorded yet. They will appear here once marked by your instructor.",
+                            fontSize = 13.sp,
+                            color = MutedBodyText,
+                            lineHeight = 18.sp
+                        )
+                    }
+                }
+            } else {
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardBackground),
+                    border = BorderStroke(1.dp, CardBorder),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        uiState.classRecords.forEachIndexed { index, record ->
+                            Row(
                                 modifier = Modifier
-                                    .background(badgeBg, shape = RoundedCornerShape(12.dp))
-                                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = label,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = badgeColor
+                                Column {
+                                    Text(
+                                        text = record.dateAndTime,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = DarkMaroonText
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = record.instructorAndStudio,
+                                        fontSize = 12.sp,
+                                        color = MutedBodyText
+                                    )
+                                }
+
+                                // Status Badge Pill
+                                val (badgeBg, badgeColor, label) = when (record.status) {
+                                    AttendanceStatus.PRESENT -> Triple(Color(0xFFE8F5E9), Color(0xFF2E7D32), "Present")
+                                    AttendanceStatus.ABSENT -> Triple(Color(0xFFFFEBEE), Color(0xFFC62828), "Absent")
+                                    AttendanceStatus.EXCUSED -> Triple(Color(0xFFFFF3E0), Color(0xFFEF6C00), "Excused")
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .background(badgeBg, shape = RoundedCornerShape(12.dp))
+                                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = label,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = badgeColor
+                                    )
+                                }
+                            }
+
+                            if (index < uiState.classRecords.size - 1) {
+                                HorizontalDivider(
+                                    color = CardBorder,
+                                    thickness = 1.dp,
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
-                        }
-
-                        if (index < uiState.classRecords.size - 1) {
-                            HorizontalDivider(
-                                color = CardBorder,
-                                thickness = 1.dp,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
                         }
                     }
                 }

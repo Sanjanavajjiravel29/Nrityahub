@@ -67,7 +67,8 @@ fun AdministratorDashboardScreen(
     onNavigateToFees: () -> Unit = {},
     onNavigateToSchedule: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
-    onNavigateToBatches: () -> Unit = {}
+    onNavigateToBatches: () -> Unit = {},
+    onNavigateToAttendance: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -90,7 +91,8 @@ fun AdministratorDashboardScreen(
                     "credentials", "nav_page_30", "create_student", "create_staff", "manage_rosters" -> onNavigateToBatches()
                     "nav_page_31", "calculate_salary", "overdue_fees" -> onNavigateToFees()
                     "nav_page_32", "admin_profile" -> onNavigateToProfile()
-                    "nav_schedule", "attendance" -> onNavigateToSchedule()
+                    "nav_schedule" -> onNavigateToSchedule()
+                    "attendance" -> onNavigateToAttendance()
                     "add_announcement" -> onNavigateToNotifications()
                     else -> {}
                 }

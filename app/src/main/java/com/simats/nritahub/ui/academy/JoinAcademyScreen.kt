@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,7 +31,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,6 +60,7 @@ import com.simats.nritahub.ui.theme.CardBorder
 import com.simats.nritahub.ui.theme.CreamBackground
 import com.simats.nritahub.ui.theme.DarkMaroonText
 import com.simats.nritahub.ui.theme.DeepPlum
+import com.simats.nritahub.ui.theme.MutedBodyText
 import com.simats.nritahub.ui.theme.NritahubTheme
 
 @Composable
@@ -68,6 +72,7 @@ fun JoinAcademyScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+    var showForgotPasswordDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.setSessionManager(UserSessionManager.getInstance(context))
@@ -88,10 +93,48 @@ fun JoinAcademyScreen(
                 viewModel.onNavigationHandled()
             }
             JoinAcademyNavigationEvent.ForgotPassword -> {
+                showForgotPasswordDialog = true
                 viewModel.onNavigationHandled()
             }
             JoinAcademyNavigationEvent.None -> {}
         }
+    }
+
+    if (showForgotPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = { showForgotPasswordDialog = false },
+            title = {
+                Text(
+                    text = "Forgot your password?",
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Serif,
+                    fontSize = 18.sp,
+                    color = DarkMaroonText
+                )
+            },
+            text = {
+                Text(
+                    text = "Please contact the Admin to reset your password.\n\nFor security reasons, password resets can only be performed by the Admin.",
+                    fontSize = 14.sp,
+                    color = MutedBodyText,
+                    lineHeight = 20.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showForgotPasswordDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = DarkMaroonText,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("OK", fontWeight = FontWeight.Bold)
+                }
+            },
+            containerColor = CardBackground,
+            shape = RoundedCornerShape(16.dp)
+        )
     }
 
     JoinAcademyContent(

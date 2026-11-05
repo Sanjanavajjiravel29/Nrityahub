@@ -68,6 +68,14 @@ data class UserDto(
     val startTime: String? = null,
 
     @SerializedName("end_time")
-    val endTime: String? = null
-)
+    val endTime: String? = null,
 
+    @SerializedName("initials")
+    val initials: String? = null,
+
+    @SerializedName("attendance_percentage")
+    val attendancePercentage: String? = null,
+
+    @SerializedName("level_and_attendance")
+    val levelAndAttendance: String? = null
+)

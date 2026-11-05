@@ -24,6 +24,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -97,7 +98,8 @@ fun FeeManagementScreen(
         onPayoutStaffUsernameChange = viewModel::onPayoutStaffUsernameChanged,
         onConfirmStaffPayoutSubmit = viewModel::onConfirmStaffPayoutSubmit,
         onTabSelect = viewModel::onTabSelected,
-        onBackClick = viewModel::onBackClicked
+        onBackClick = viewModel::onBackClicked,
+        onRefreshFees = viewModel::fetchFees
     )
 }
 
@@ -120,7 +122,8 @@ fun FeeManagementContent(
     onPayoutStaffUsernameChange: (String) -> Unit = {},
     onConfirmStaffPayoutSubmit: () -> Unit = {},
     onTabSelect: (AdminTab) -> Unit = {},
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    onRefreshFees: () -> Unit = {}
 ) {
     Scaffold(
         containerColor = CreamBackground,
@@ -236,13 +239,22 @@ fun FeeManagementContent(
                         .fillMaxWidth()
                         .padding(20.dp)
                 ) {
-                    Text(
-                        text = uiState.title,
-                        fontFamily = FontFamily.Serif,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = DarkMaroonText
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = uiState.title,
+                            fontFamily = FontFamily.Serif,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = DarkMaroonText
+                        )
+                        IconButton(onClick = onRefreshFees) {
+                            Text(text = "↻", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = DeepPlum)
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(2.dp))
 
@@ -255,6 +267,35 @@ fun FeeManagementContent(
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
+
+                    if (uiState.isLoading) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = DeepPlum, strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = "Loading live fee records...", fontSize = 12.sp, color = MutedBodyText)
+                        }
+                    }
+                    if (uiState.errorMessage != null) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = uiState.errorMessage ?: "",
+                                color = Color(0xFFC62828),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                    }
 
                     // Mode Chips
                     Row(

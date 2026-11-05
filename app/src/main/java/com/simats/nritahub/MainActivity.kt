@@ -2,6 +2,10 @@ package com.simats.nritahub
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.rememberCoroutineScope
+import com.simats.nritahub.data.repository.AuthRepository
+import kotlinx.coroutines.launch
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
@@ -90,6 +94,27 @@ fun NrityaHubApp() {
     }
 
     var currentScreen by remember { mutableStateOf(initialScreen) }
+    val coroutineScope = rememberCoroutineScope()
+    val authRepository = remember { AuthRepository() }
+
+    // Shared secure logout routine across all user roles
+    val handleLogout: () -> Unit = {
+        coroutineScope.launch {
+            try {
+                authRepository.logout()
+            } catch (_: Exception) {
+                // Safely handle network error or server offline
+            } finally {
+                sessionManager.clearSession()
+                currentScreen = Screen.JoinAcademy
+            }
+        }
+    }
+
+    // Prevent hardware back button from navigating back to authenticated screens after logout
+    BackHandler(enabled = (currentScreen == Screen.JoinAcademy)) {
+        (context as? ComponentActivity)?.finish()
+    }
 
     when (currentScreen) {
         Screen.Splash -> {
@@ -122,7 +147,8 @@ fun NrityaHubApp() {
                 onNavigateToAttendance = { currentScreen = Screen.AttendanceHistory },
                 onNavigateToSchedule = { currentScreen = Screen.ClassSchedule },
                 onNavigateToPractice = { currentScreen = Screen.PracticeLibrary },
-                onNavigateToProgress = { currentScreen = Screen.MyProgress }
+                onNavigateToProgress = { currentScreen = Screen.MyProgress },
+                onLogout = handleLogout
             )
         }
         Screen.ClassSchedule -> {
@@ -157,7 +183,7 @@ fun NrityaHubApp() {
         }
         Screen.AttendanceHistory -> {
             AttendanceHistoryScreen(
-                onBackToPrevious = { currentScreen = Screen.MyProgress }
+                onBackToPrevious = { currentScreen = Screen.StudentHome }
             )
         }
         Screen.FeesInvoices -> {
@@ -192,7 +218,13 @@ fun NrityaHubApp() {
         }
         Screen.MarkAttendance -> {
             MarkAttendanceScreen(
-                onBackToPrevious = { currentScreen = Screen.InstructorDashboard }
+                onBackToPrevious = {
+                    currentScreen = if (sessionManager.getUserRole()?.lowercase()?.trim() == "admin") {
+                        Screen.AdministratorDashboard
+                    } else {
+                        Screen.InstructorDashboard
+                    }
+                }
             )
         }
         Screen.ReviewPractice -> {
@@ -203,10 +235,7 @@ fun NrityaHubApp() {
         Screen.InstructorProfile -> {
             InstructorProfileScreen(
                 onNavigateToToday = { currentScreen = Screen.InstructorDashboard },
-                onSignOut = {
-                    sessionManager.clearSession()
-                    currentScreen = Screen.JoinAcademy
-                }
+                onSignOut = handleLogout
             )
         }
         Screen.AdministratorDashboard -> {
@@ -215,7 +244,8 @@ fun NrityaHubApp() {
                 onNavigateToFees = { currentScreen = Screen.FeeManagement },
                 onNavigateToSchedule = { currentScreen = Screen.ClassSchedule },
                 onNavigateToProfile = { currentScreen = Screen.AdministratorProfile },
-                onNavigateToBatches = { currentScreen = Screen.ManageBatches }
+                onNavigateToBatches = { currentScreen = Screen.ManageBatches },
+                onNavigateToAttendance = { currentScreen = Screen.MarkAttendance }
             )
         }
         Screen.ManageBatches -> {
@@ -231,10 +261,7 @@ fun NrityaHubApp() {
         Screen.AdministratorProfile -> {
             AdministratorProfileScreen(
                 onNavigateToOverview = { currentScreen = Screen.AdministratorDashboard },
-                onSignOut = {
-                    sessionManager.clearSession()
-                    currentScreen = Screen.JoinAcademy
-                }
+                onSignOut = handleLogout
             )
         }
         Screen.Home -> {

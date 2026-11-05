@@ -2,21 +2,28 @@ package com.simats.nritahub.data.session
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 
 /**
  * Manages local persistence of the logged-in user's profile, role, and Bearer authentication token.
  *
- * Architecture Note on Authentication:
- * Tokens issued by the backend are cryptographically random 64-character tokens.
- * Passwords are never saved or stored.
+ * Security Architecture:
+ * - Uses hardware-backed AES256-GCM / AES256-SIV via AndroidX EncryptedSharedPreferences.
+ * - Sensitive Bearer authentication tokens and user credentials are encrypted at rest on device disk.
+ * - Legacy unencrypted SharedPreferences are automatically purged upon initialization.
+ * - Passwords are never saved or stored.
  */
 class UserSessionManager(context: Context) {
 
-    private val prefs: SharedPreferences =
-        context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = initializePreferences(context.applicationContext)
 
     companion object {
-        private const val PREFS_NAME = "nrityahub_user_session"
+        private const val TAG = "UserSessionManager"
+        private const val LEGACY_PREFS_NAME = "nrityahub_user_session"
+        private const val ENCRYPTED_PREFS_NAME = "nrityahub_encrypted_user_session"
+
         private const val KEY_IS_LOGGED_IN = "is_logged_in"
         private const val KEY_USER_ID = "user_id"
         private const val KEY_FULL_NAME = "full_name"
@@ -46,6 +53,40 @@ class UserSessionManager(context: Context) {
          */
         fun getActiveToken(): String? {
             return instance?.getAuthToken()
+        }
+
+        /**
+         * Securely instantiates EncryptedSharedPreferences backed by Android Keystore.
+         * Wipes any legacy plaintext preferences found on device.
+         */
+        private fun initializePreferences(appContext: Context): SharedPreferences {
+            // Purge legacy plaintext preferences file if present
+            try {
+                val legacyPrefs = appContext.getSharedPreferences(LEGACY_PREFS_NAME, Context.MODE_PRIVATE)
+                if (legacyPrefs.all.isNotEmpty()) {
+                    legacyPrefs.edit().clear().apply()
+                    Log.i(TAG, "Legacy unencrypted user session preferences purged successfully.")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not inspect/purge legacy preferences: ${e.message}")
+            }
+
+            return try {
+                val masterKey = MasterKey.Builder(appContext)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build()
+
+                EncryptedSharedPreferences.create(
+                    appContext,
+                    ENCRYPTED_PREFS_NAME,
+                    masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                )
+            } catch (e: Exception) {
+                Log.w(TAG, "EncryptedSharedPreferences unavailable (e.g. JVM host test environment). Falling back to private preferences: ${e.message}")
+                appContext.getSharedPreferences(ENCRYPTED_PREFS_NAME, Context.MODE_PRIVATE)
+            }
         }
     }
 

@@ -20,10 +20,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -127,7 +129,22 @@ fun ManageBatchesScreen(
         onToggleExpandStudent = viewModel::toggleExpandStudent,
         onToggleExpandStaff = viewModel::toggleExpandStaff,
         onTabSelect = viewModel::onTabSelected,
-        onBackClick = viewModel::onBackClicked
+        onBackClick = viewModel::onBackClicked,
+        onRefreshUsers = viewModel::fetchUsers,
+        onOpenResetPasswordDialog = viewModel::openResetPasswordDialog,
+        onResetPasswordInputChange = viewModel::onResetPasswordInputChanged,
+        onConfirmResetPassword = viewModel::confirmResetPassword,
+        onDismissResetPasswordDialog = viewModel::closeResetPasswordDialog,
+        onDismissMessageBanner = viewModel::clearUserManagementMessages,
+        onRefreshBatches = viewModel::fetchBatches,
+        onToggleCreateBatchMode = viewModel::toggleCreateBatchMode,
+        onOpenAssignStudentDialog = viewModel::openAssignStudentDialog,
+        onSelectStudentToAssign = viewModel::onSelectStudentToAssign,
+        onCloseAssignStudentDialog = viewModel::closeAssignStudentDialog,
+        onConfirmAssignStudent = viewModel::confirmAssignStudent,
+        onOpenRemoveStudentConfirmDialog = viewModel::openRemoveStudentConfirmDialog,
+        onCloseRemoveStudentConfirmDialog = viewModel::closeRemoveStudentConfirmDialog,
+        onConfirmRemoveStudent = viewModel::confirmRemoveStudent
     )
 }
 
@@ -164,7 +181,22 @@ fun ManageBatchesContent(
     onToggleExpandStudent: (String) -> Unit = {},
     onToggleExpandStaff: (String) -> Unit = {},
     onTabSelect: (AdminTab) -> Unit = {},
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    onRefreshUsers: () -> Unit = {},
+    onOpenResetPasswordDialog: (userId: Int?, userName: String, role: String) -> Unit = { _, _, _ -> },
+    onResetPasswordInputChange: (String) -> Unit = {},
+    onConfirmResetPassword: () -> Unit = {},
+    onDismissResetPasswordDialog: () -> Unit = {},
+    onDismissMessageBanner: () -> Unit = {},
+    onRefreshBatches: () -> Unit = {},
+    onToggleCreateBatchMode: () -> Unit = {},
+    onOpenAssignStudentDialog: () -> Unit = {},
+    onSelectStudentToAssign: (Int) -> Unit = {},
+    onCloseAssignStudentDialog: () -> Unit = {},
+    onConfirmAssignStudent: () -> Unit = {},
+    onOpenRemoveStudentConfirmDialog: (Int?, String) -> Unit = { _, _ -> },
+    onCloseRemoveStudentConfirmDialog: () -> Unit = {},
+    onConfirmRemoveStudent: () -> Unit = {}
 ) {
     Scaffold(
         containerColor = CreamBackground,
@@ -251,21 +283,122 @@ fun ManageBatchesContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            if (uiState.userManagementErrorMessage != null) {
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+                    border = BorderStroke(1.dp, Color(0xFFFFCDD2)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = uiState.userManagementErrorMessage ?: "",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFC62828),
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "✕",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFC62828),
+                            modifier = Modifier.clickable { onDismissMessageBanner() }
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            if (uiState.userManagementSuccessMessage != null) {
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+                    border = BorderStroke(1.dp, Color(0xFFC8E6C9)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = uiState.userManagementSuccessMessage ?: "",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF2E7D32),
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "✕",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF2E7D32),
+                            modifier = Modifier.clickable { onDismissMessageBanner() }
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
             when (uiState.activeMode) {
                 BatchMode.STUDENTS -> {
-                    Text(
-                        text = "Enrolled Students Roster",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = DarkMaroonText
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Students can only login using admin-created profiles.",
-                        fontSize = 12.sp,
-                        color = MutedBodyText
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Enrolled Students Roster",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = DarkMaroonText
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Students can only login using admin-created profiles.",
+                                fontSize = 12.sp,
+                                color = MutedBodyText
+                            )
+                        }
+                        IconButton(onClick = onRefreshUsers) {
+                            Text(text = "↻", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = DeepPlum)
+                        }
+                    }
                     Spacer(modifier = Modifier.height(12.dp))
+
+                    if (uiState.isUsersLoading) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = DeepPlum,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Loading student roster from server...",
+                                fontSize = 12.sp,
+                                color = MutedBodyText
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
 
                     if (uiState.createdStudentSuccessName != null) {
                         Card(
@@ -384,6 +517,7 @@ fun ManageBatchesContent(
 
                                 Button(
                                     onClick = onCreateStudentSubmit,
+                                    enabled = !uiState.isCreatingUser,
                                     colors = ButtonDefaults.buttonColors(containerColor = SoftLavenderBadge, contentColor = DeepPlum),
                                     shape = RoundedCornerShape(16.dp),
                                     modifier = Modifier
@@ -391,7 +525,7 @@ fun ManageBatchesContent(
                                         .height(46.dp)
                                 ) {
                                     Text(
-                                        text = "Create Profile & Issue Credentials",
+                                        text = if (uiState.isCreatingUser) "Creating Account..." else "Create Profile & Issue Credentials",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = DeepPlum
@@ -498,6 +632,24 @@ fun ManageBatchesContent(
                                                     fontWeight = FontWeight.SemiBold,
                                                     color = DarkMaroonText
                                                 )
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                OutlinedButton(
+                                                    onClick = { onOpenResetPasswordDialog(student.numericId, student.name, "student") },
+                                                    colors = ButtonDefaults.outlinedButtonColors(
+                                                        containerColor = Color.White,
+                                                        contentColor = DeepPlum
+                                                    ),
+                                                    border = BorderStroke(1.dp, DeepPlum),
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    modifier = Modifier.height(34.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "Admin Reset Password",
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = DeepPlum
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -529,19 +681,53 @@ fun ManageBatchesContent(
                 }
 
                 BatchMode.STAFF -> {
-                    Text(
-                        text = "Academy Staff & Instructors",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = DarkMaroonText
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Staff roles, assigned batches, and salary information.",
-                        fontSize = 12.sp,
-                        color = MutedBodyText
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Academy Staff & Instructors",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = DarkMaroonText
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Staff roles, assigned batches, and salary information.",
+                                fontSize = 12.sp,
+                                color = MutedBodyText
+                            )
+                        }
+                        IconButton(onClick = onRefreshUsers) {
+                            Text(text = "↻", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = DeepPlum)
+                        }
+                    }
                     Spacer(modifier = Modifier.height(12.dp))
+
+                    if (uiState.isUsersLoading) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = DeepPlum,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Loading staff roster from server...",
+                                fontSize = 12.sp,
+                                color = MutedBodyText
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
 
                     if (uiState.createdStaffSuccessName != null) {
                         Card(
@@ -698,6 +884,7 @@ fun ManageBatchesContent(
 
                                 Button(
                                     onClick = onCreateStaffSubmit,
+                                    enabled = !uiState.isCreatingUser,
                                     colors = ButtonDefaults.buttonColors(containerColor = SoftLavenderBadge, contentColor = DeepPlum),
                                     shape = RoundedCornerShape(16.dp),
                                     modifier = Modifier
@@ -705,7 +892,7 @@ fun ManageBatchesContent(
                                         .height(46.dp)
                                 ) {
                                     Text(
-                                        text = "Create Staff Profile & Issue Credentials",
+                                        text = if (uiState.isCreatingUser) "Creating Account..." else "Create Staff Profile & Issue Credentials",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = DeepPlum
@@ -795,6 +982,24 @@ fun ManageBatchesContent(
                                                     fontWeight = FontWeight.SemiBold,
                                                     color = DarkMaroonText
                                                 )
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                OutlinedButton(
+                                                    onClick = { onOpenResetPasswordDialog(staff.numericId, staff.name, "instructor") },
+                                                    colors = ButtonDefaults.outlinedButtonColors(
+                                                        containerColor = Color.White,
+                                                        contentColor = DeepPlum
+                                                    ),
+                                                    border = BorderStroke(1.dp, DeepPlum),
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    modifier = Modifier.height(34.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "Admin Reset Password",
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = DeepPlum
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -834,16 +1039,56 @@ fun ManageBatchesContent(
                     var startTimeExpanded by remember { mutableStateOf(false) }
                     var endTimeExpanded by remember { mutableStateOf(false) }
 
-                    Text(
-                        text = "Selected batch",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = DarkMaroonText
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (uiState.isCreateBatchMode) "Create New Batch" else "Selected batch",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = DarkMaroonText
+                        )
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = onRefreshBatches, modifier = Modifier.size(30.dp)) {
+                                Text(text = "↻", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = DeepPlum)
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (uiState.isCreateBatchMode) DeepPlum else SoftLavenderBadge)
+                                    .clickable { onToggleCreateBatchMode() }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = if (uiState.isCreateBatchMode) "Cancel / View Batches" else "+ New Batch",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (uiState.isCreateBatchMode) Color.White else DeepPlum
+                                )
+                            }
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    Box(modifier = Modifier.fillMaxWidth()) {
+                    if (uiState.isBatchesLoading) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = DeepPlum, strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Loading academy batches...", fontSize = 11.sp, color = MutedBodyText)
+                        }
+                    }
+
+                    if (!uiState.isCreateBatchMode) {
+                        Box(modifier = Modifier.fillMaxWidth()) {
                         Card(
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = CardBackground),
@@ -924,6 +1169,7 @@ fun ManageBatchesContent(
                                 color = DeepPlum
                             )
                         }
+                    }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -1487,6 +1733,7 @@ fun ManageBatchesContent(
 
                     OutlinedButton(
                         onClick = onSaveBatchClick,
+                        enabled = !uiState.isSavingBatch,
                         colors = ButtonDefaults.outlinedButtonColors(
                             containerColor = SoftLavenderBadge,
                             contentColor = DeepPlum
@@ -1502,7 +1749,7 @@ fun ManageBatchesContent(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = if (uiState.isSaved) "Saved ✓" else "Save batch & schedule",
+                                text = if (uiState.isSavingBatch) "Saving..." else (if (uiState.isCreateBatchMode) "Create Batch & Schedule" else (if (uiState.isSaved) "Saved ✓" else "Save batch & schedule")),
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = DeepPlum
@@ -1517,11 +1764,387 @@ fun ManageBatchesContent(
                             }
                         }
                     }
+
+                    if (!uiState.isCreateBatchMode) {
+                        Spacer(modifier = Modifier.height(22.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Batch Enrolled Students",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = DarkMaroonText
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "${uiState.batchRosterStudents.size} students currently assigned",
+                                    fontSize = 11.sp,
+                                    color = MutedBodyText
+                                )
+                            }
+
+                            OutlinedButton(
+                                onClick = onOpenAssignStudentDialog,
+                                colors = ButtonDefaults.outlinedButtonColors(containerColor = SoftLavenderBadge, contentColor = DeepPlum),
+                                border = BorderStroke(1.dp, CardBorder),
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.height(34.dp)
+                            ) {
+                                Text(
+                                    text = "+ Assign Student",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = DeepPlum
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        if (uiState.isRosterLoading) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = DeepPlum, strokeWidth = 2.dp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Loading batch students...", fontSize = 12.sp, color = MutedBodyText)
+                            }
+                        } else if (uiState.batchRosterStudents.isEmpty()) {
+                            Card(
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = CardBackground),
+                                border = BorderStroke(1.dp, CardBorder),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Box(modifier = Modifier.padding(18.dp), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = "No students enrolled in this batch yet. Tap '+ Assign Student' to enroll a student.",
+                                        fontSize = 12.sp,
+                                        color = MutedBodyText
+                                    )
+                                }
+                            }
+                        } else {
+                            Card(
+                                shape = RoundedCornerShape(18.dp),
+                                colors = CardDefaults.cardColors(containerColor = CardBackground),
+                                border = BorderStroke(1.dp, CardBorder),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    uiState.batchRosterStudents.forEachIndexed { index, student ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(14.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(36.dp)
+                                                        .clip(CircleShape)
+                                                        .background(SoftLavenderBadge),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = student.initials,
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = DeepPlum
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(10.dp))
+                                                Column {
+                                                    Text(
+                                                        text = student.name,
+                                                        fontSize = 13.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = DarkMaroonText
+                                                    )
+                                                    Text(
+                                                        text = student.attendanceSummary ?: student.username,
+                                                        fontSize = 11.sp,
+                                                        color = MutedBodyText
+                                                    )
+                                                }
+                                            }
+
+                                            OutlinedButton(
+                                                onClick = { onOpenRemoveStudentConfirmDialog(student.numericId, student.name) },
+                                                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Color(0xFFC62828)),
+                                                border = BorderStroke(1.dp, Color(0xFFFFCDD2)),
+                                                shape = RoundedCornerShape(10.dp),
+                                                modifier = Modifier.height(30.dp)
+                                            ) {
+                                                Text(text = "Remove", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC62828))
+                                            }
+                                        }
+
+                                        if (index < uiState.batchRosterStudents.size - 1) {
+                                            HorizontalDivider(color = CardBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 14.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
         }
+    }
+
+    if (uiState.showAssignStudentDialog) {
+        AlertDialog(
+            onDismissRequest = onCloseAssignStudentDialog,
+            containerColor = CreamBackground,
+            title = {
+                Text(
+                    text = "Assign Student to ${uiState.selectedBatchName}",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = DarkMaroonText
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Select an academy student to enroll into this batch roster:",
+                        fontSize = 12.sp,
+                        color = MutedBodyText
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    val allStudents = uiState.studentsList
+                    if (allStudents.isEmpty()) {
+                        Text("No students available. Please create a student first.", fontSize = 12.sp, color = MutedBodyText)
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(220.dp)
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            allStudents.forEach { student ->
+                                val isSelected = uiState.selectedStudentIdToAssign == student.numericId
+                                Card(
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = CardDefaults.cardColors(containerColor = if (isSelected) SoftLavenderBadge else CardBackground),
+                                    border = BorderStroke(if (isSelected) 1.5.dp else 1.dp, if (isSelected) DeepPlum else CardBorder),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { student.numericId?.let { onSelectStudentToAssign(it) } }
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(10.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text(text = student.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DarkMaroonText)
+                                            Text(text = "Current: ${student.batchName}", fontSize = 10.sp, color = MutedBodyText)
+                                        }
+                                        if (isSelected) {
+                                            Text(text = "✓ Selected", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DeepPlum)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (uiState.assignStudentError != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = uiState.assignStudentError ?: "",
+                            color = Color(0xFFC62828),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = onConfirmAssignStudent,
+                    enabled = !uiState.isAssigningStudent && uiState.selectedStudentIdToAssign != null,
+                    colors = ButtonDefaults.buttonColors(containerColor = DeepPlum, contentColor = Color.White),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = if (uiState.isAssigningStudent) "Enrolling..." else "Confirm Enrollment",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = onCloseAssignStudentDialog,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkMaroonText),
+                    border = BorderStroke(1.dp, CardBorder),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Cancel", fontSize = 12.sp)
+                }
+            }
+        )
+    }
+
+    if (uiState.showRemoveStudentConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = onCloseRemoveStudentConfirmDialog,
+            containerColor = CreamBackground,
+            title = {
+                Text(
+                    text = "Remove Student from Batch?",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = DarkMaroonText
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Are you sure you want to remove ${uiState.studentToRemoveName} from ${uiState.selectedBatchName}?",
+                        fontSize = 13.sp,
+                        color = DarkMaroonText
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "The student will be unenrolled from this batch. Their user account and attendance history will remain safe.",
+                        fontSize = 11.sp,
+                        color = MutedBodyText
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = onConfirmRemoveStudent,
+                    enabled = !uiState.isRemovingStudent,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC62828), contentColor = Color.White),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = if (uiState.isRemovingStudent) "Removing..." else "Remove Student",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = onCloseRemoveStudentConfirmDialog,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkMaroonText),
+                    border = BorderStroke(1.dp, CardBorder),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Cancel", fontSize = 12.sp)
+                }
+            }
+        )
+    }
+
+    if (uiState.showResetPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = onDismissResetPasswordDialog,
+            containerColor = CreamBackground,
+            title = {
+                Text(
+                    text = "Reset User Password",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = DarkMaroonText
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Reset password for ${uiState.resetTargetUserName} (${uiState.resetTargetUserRole.replaceFirstChar { it.uppercase() }}).",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DarkMaroonText
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "All active authentication tokens for this user will be revoked immediately.",
+                        fontSize = 11.sp,
+                        color = MutedBodyText
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "New Password (min 8 characters)",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = DarkMaroonText
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardBackground),
+                        border = BorderStroke(1.dp, CardBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(modifier = Modifier.padding(12.dp)) {
+                            BasicTextField(
+                                value = uiState.newPasswordInput,
+                                onValueChange = onResetPasswordInputChange,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                    if (uiState.resetPasswordError != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = uiState.resetPasswordError ?: "",
+                            color = Color(0xFFC62828),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = onConfirmResetPassword,
+                    enabled = !uiState.isResettingPassword && uiState.newPasswordInput.length >= 8,
+                    colors = ButtonDefaults.buttonColors(containerColor = DeepPlum, contentColor = Color.White),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = if (uiState.isResettingPassword) "Resetting..." else "Confirm Reset",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = onDismissResetPasswordDialog,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkMaroonText),
+                    border = BorderStroke(1.dp, CardBorder),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Cancel", fontSize = 13.sp)
+                }
+            }
+        )
     }
 }
 

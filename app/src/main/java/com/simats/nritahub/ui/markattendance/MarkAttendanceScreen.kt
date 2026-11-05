@@ -1,5 +1,6 @@
 package com.simats.nritahub.ui.markattendance
 
+import android.app.DatePickerDialog
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -23,7 +24,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -56,6 +60,8 @@ import com.simats.nritahub.ui.theme.MediumMaroonText
 import com.simats.nritahub.ui.theme.MutedBodyText
 import com.simats.nritahub.ui.theme.NritahubTheme
 import com.simats.nritahub.ui.theme.SoftLavenderBadge
+import java.util.Calendar
+import java.util.Locale
 
 @Composable
 fun MarkAttendanceScreen(
@@ -81,8 +87,11 @@ fun MarkAttendanceScreen(
     MarkAttendanceContent(
         uiState = uiState,
         onBatchSelect = viewModel::onBatchSelected,
+        onDateSelect = viewModel::onDateSelected,
         onSetStatus = viewModel::setStudentStatus,
         onSaveAttendanceClick = viewModel::onSaveAttendanceClicked,
+        onRefreshClick = viewModel::refresh,
+        onDismissMessages = viewModel::dismissMessages,
         onBackClick = viewModel::onBackClicked
     )
 }
@@ -91,10 +100,37 @@ fun MarkAttendanceScreen(
 fun MarkAttendanceContent(
     uiState: MarkAttendanceUiState,
     onBatchSelect: (String) -> Unit = {},
+    onDateSelect: (String) -> Unit = {},
     onSetStatus: (id: String, status: AttendanceStatus) -> Unit = { _, _ -> },
     onSaveAttendanceClick: () -> Unit = {},
+    onRefreshClick: () -> Unit = {},
+    onDismissMessages: () -> Unit = {},
     onBackClick: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+
+    // Prepare DatePickerDialog for selecting attendance date
+    val calendar = Calendar.getInstance()
+    try {
+        val parts = uiState.selectedDate.split("-")
+        if (parts.size == 3) {
+            calendar.set(parts[0].toInt(), parts[1].toInt() - 1, parts[2].toInt())
+        }
+    } catch (_: Exception) {}
+
+    val datePickerDialog = remember(context, uiState.selectedDate) {
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                val formatted = String.format(Locale.US, "%04d-%02d-%02d", year, month + 1, dayOfMonth)
+                onDateSelect(formatted)
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        )
+    }
+
     Scaffold(
         containerColor = CreamBackground
     ) { innerPadding ->
@@ -143,30 +179,235 @@ fun MarkAttendanceContent(
                     }
                 }
 
-                // Three dots trailing icon
-                Canvas(modifier = Modifier.size(16.dp)) {
-                    val r = 1.8.dp.toPx()
-                    val centerY = size.height / 2
-                    val w = size.width
-                    drawCircle(color = MediumMaroonText, radius = r, center = Offset(w * 0.2f, centerY))
-                    drawCircle(color = MediumMaroonText, radius = r, center = Offset(w * 0.5f, centerY))
-                    drawCircle(color = MediumMaroonText, radius = r, center = Offset(w * 0.8f, centerY))
+                // Refresh Button in header
+                IconButton(
+                    onClick = onRefreshClick,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Canvas(modifier = Modifier.size(18.dp)) {
+                        val stroke = 2.dp.toPx()
+                        drawArc(
+                            color = DeepPlum,
+                            startAngle = 45f,
+                            sweepAngle = 270f,
+                            useCenter = false,
+                            style = Stroke(width = stroke, cap = StrokeCap.Round)
+                        )
+                        // Arrow head
+                        drawLine(
+                            color = DeepPlum,
+                            start = Offset(size.width * 0.8f, size.height * 0.35f),
+                            end = Offset(size.width * 0.95f, size.height * 0.5f),
+                            strokeWidth = stroke,
+                            cap = StrokeCap.Round
+                        )
+                        drawLine(
+                            color = DeepPlum,
+                            start = Offset(size.width * 0.95f, size.height * 0.5f),
+                            end = Offset(size.width * 0.75f, size.height * 0.65f),
+                            strokeWidth = stroke,
+                            cap = StrokeCap.Round
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Main Title
-            Text(
-                text = uiState.title,
-                fontFamily = FontFamily.Serif,
-                fontSize = 32.sp,
-                color = DarkMaroonText
-            )
+            // Main Title & Status Badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = uiState.title,
+                    fontFamily = FontFamily.Serif,
+                    fontSize = 32.sp,
+                    color = DarkMaroonText
+                )
+
+                Box(
+                    modifier = Modifier
+                        .background(
+                            if (uiState.isSaved) Color(0xFFE8F5E9) else SoftLavenderBadge,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                ) {
+                    Text(
+                        text = uiState.draftBadge,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (uiState.isSaved) Color(0xFF2E7D32) else DeepPlum
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Error banner if any
+            if (uiState.errorMessage != null) {
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+                    border = BorderStroke(1.dp, Color(0xFFEF9A9A)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = uiState.errorMessage,
+                            color = Color(0xFFC62828),
+                            fontSize = 13.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Retry",
+                            color = DeepPlum,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            modifier = Modifier.clickable { onRefreshClick() }
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // Success banner if any
+            if (uiState.successMessage != null) {
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+                    border = BorderStroke(1.dp, Color(0xFFA5D6A7)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = uiState.successMessage,
+                            color = Color(0xFF2E7D32),
+                            fontSize = 13.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Dismiss",
+                            color = Color(0xFF2E7D32),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            modifier = Modifier.clickable { onDismissMessages() }
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // Attendance Date Selector Card
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = CardBackground),
+                border = BorderStroke(1.dp, CardBorder),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { datePickerDialog.show() }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(SoftLavenderBadge),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Canvas(modifier = Modifier.size(16.dp)) {
+                                val w = size.width
+                                val h = size.height
+                                val stroke = 1.8.dp.toPx()
+                                drawRect(
+                                    color = DeepPlum,
+                                    topLeft = Offset(0f, h * 0.25f),
+                                    size = androidx.compose.ui.geometry.Size(w, h * 0.75f),
+                                    style = Stroke(width = stroke)
+                                )
+                                drawLine(
+                                    color = DeepPlum,
+                                    start = Offset(0f, h * 0.5f),
+                                    end = Offset(w, h * 0.5f),
+                                    strokeWidth = stroke
+                                )
+                                drawLine(
+                                    color = DeepPlum,
+                                    start = Offset(w * 0.28f, 0f),
+                                    end = Offset(w * 0.28f, h * 0.3f),
+                                    strokeWidth = stroke,
+                                    cap = StrokeCap.Round
+                                )
+                                drawLine(
+                                    color = DeepPlum,
+                                    start = Offset(w * 0.72f, 0f),
+                                    end = Offset(w * 0.72f, h * 0.3f),
+                                    strokeWidth = stroke,
+                                    cap = StrokeCap.Round
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column {
+                            Text(
+                                text = "Attendance Date",
+                                fontSize = 11.sp,
+                                color = MutedBodyText,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = uiState.formattedDateText.ifEmpty { uiState.selectedDate },
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = DarkMaroonText
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .background(SoftLavenderBadge, shape = RoundedCornerShape(10.dp))
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "Change Date",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = DeepPlum
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 2 Batches Selection Cards
+            // Batches Selection Section
             Text(
                 text = "Select batch",
                 fontSize = 13.sp,
@@ -176,60 +417,82 @@ fun MarkAttendanceContent(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                uiState.batches.forEach { batch ->
-                    val isSelected = uiState.selectedBatchId == batch.id
-                    val cardBg = if (isSelected) SoftLavenderBadge else CardBackground
-                    val cardBorder = if (isSelected) BorderStroke(1.5.dp, DeepPlum) else BorderStroke(1.dp, CardBorder)
-
-                    Card(
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = cardBg),
-                        border = cardBorder,
+            if (uiState.batches.isEmpty() && !uiState.isLoading) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardBackground),
+                    border = BorderStroke(1.dp, CardBorder),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onBatchSelect(batch.id) }
+                            .padding(20.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Column(
+                        Text(
+                            text = "No batches available for attendance.",
+                            fontSize = 13.sp,
+                            color = MutedBodyText
+                        )
+                    }
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    uiState.batches.forEach { batch ->
+                        val isSelected = uiState.selectedBatchId == batch.id
+                        val cardBg = if (isSelected) SoftLavenderBadge else CardBackground
+                        val cardBorder = if (isSelected) BorderStroke(1.5.dp, DeepPlum) else BorderStroke(1.dp, CardBorder)
+
+                        Card(
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = cardBg),
+                            border = cardBorder,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp)
+                                .clickable { onBatchSelect(batch.id) }
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
                             ) {
-                                Text(
-                                    text = batch.title,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = DarkMaroonText
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = batch.title,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = DarkMaroonText
+                                    )
 
-                                if (isSelected) {
-                                    Box(
-                                        modifier = Modifier
-                                            .background(DeepPlum, shape = RoundedCornerShape(10.dp))
-                                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                                    ) {
-                                        Text(
-                                            text = "Active",
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White
-                                        )
+                                    if (isSelected) {
+                                        Box(
+                                            modifier = Modifier
+                                                .background(DeepPlum, shape = RoundedCornerShape(10.dp))
+                                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                        ) {
+                                            Text(
+                                                text = "Active",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White
+                                            )
+                                        }
                                     }
                                 }
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                Text(
+                                    text = batch.scheduleAndStudio,
+                                    fontSize = 12.sp,
+                                    color = MutedBodyText
+                                )
                             }
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            Text(
-                                text = batch.scheduleAndStudio,
-                                fontSize = 12.sp,
-                                color = MutedBodyText
-                            )
                         }
                     }
                 }
@@ -237,7 +500,7 @@ fun MarkAttendanceContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Summary Stats Grid Row (3 Cards)
+            // Summary Stats Grid Row (3 Cards: Present, Absent, Excused)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -315,10 +578,10 @@ fun MarkAttendanceContent(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Active Batch Students List Header
-            val activeBatch = uiState.batches.find { it.id == uiState.selectedBatchId } ?: uiState.batches.first()
+            val activeBatch = uiState.batches.find { it.id == uiState.selectedBatchId } ?: uiState.batches.firstOrNull()
 
             Text(
-                text = "${activeBatch.title} Roster",
+                text = "${activeBatch?.title ?: "Batch"} Roster",
                 fontFamily = FontFamily.Serif,
                 fontSize = 18.sp,
                 color = DarkMaroonText
@@ -326,122 +589,174 @@ fun MarkAttendanceContent(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Students List Cards
-            uiState.currentStudents.forEach { student ->
+            // Loading indicator for students
+            if (uiState.isLoading) {
                 Card(
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = CardBackground),
                     border = BorderStroke(1.dp, CardBorder),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp)
+                            .padding(24.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(CircleShape)
-                                    .background(SoftLavenderBadge),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = student.initials,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = DeepPlum
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Text(
-                                text = student.name,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = DarkMaroonText
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // 3 Attendance Toggle Buttons Row
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        CircularProgressIndicator(
+                            color = DeepPlum,
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Loading attendance records...",
+                            fontSize = 13.sp,
+                            color = MutedBodyText
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            } else if (uiState.currentStudents.isEmpty()) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardBackground),
+                    border = BorderStroke(1.dp, CardBorder),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No enrolled students found in this batch.",
+                            fontSize = 13.sp,
+                            color = MutedBodyText
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            } else {
+                // Students List Cards
+                uiState.currentStudents.forEach { student ->
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardBackground),
+                        border = BorderStroke(1.dp, CardBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
                         ) {
-                            // Present Button
-                            val isPresent = student.status == AttendanceStatus.PRESENT
-                            val presentBg = if (isPresent) Color(0xFF2E5B44) else Color(0xFFF3ECE5)
-                            val presentTextColor = if (isPresent) Color.White else DarkMaroonText
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(SoftLavenderBadge),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = student.initials,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = DeepPlum
+                                    )
+                                }
 
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(presentBg)
-                                    .clickable { onSetStatus(student.id, AttendanceStatus.PRESENT) }
-                                    .padding(vertical = 10.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
+                                Spacer(modifier = Modifier.width(12.dp))
+
                                 Text(
-                                    text = "Present",
-                                    fontSize = 12.sp,
+                                    text = student.name,
+                                    fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = presentTextColor
+                                    color = DarkMaroonText
                                 )
                             }
 
-                            // Absent Button
-                            val isAbsent = student.status == AttendanceStatus.ABSENT
-                            val absentBg = if (isAbsent) Color(0xFF944242) else Color(0xFFF3ECE5)
-                            val absentTextColor = if (isAbsent) Color.White else DarkMaroonText
+                            Spacer(modifier = Modifier.height(12.dp))
 
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(absentBg)
-                                    .clickable { onSetStatus(student.id, AttendanceStatus.ABSENT) }
-                                    .padding(vertical = 10.dp),
-                                contentAlignment = Alignment.Center
+                            // 3 Attendance Toggle Buttons Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text(
-                                    text = "Absent",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = absentTextColor
-                                )
-                            }
+                                // Present Button
+                                val isPresent = student.status == AttendanceStatus.PRESENT
+                                val presentBg = if (isPresent) Color(0xFF2E5B44) else Color(0xFFF3ECE5)
+                                val presentTextColor = if (isPresent) Color.White else DarkMaroonText
 
-                            // Excused Button
-                            val isExcused = student.status == AttendanceStatus.EXCUSED
-                            val excusedBg = if (isExcused) Color(0xFF8B5E2B) else Color(0xFFF3ECE5)
-                            val excusedTextColor = if (isExcused) Color.White else DarkMaroonText
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(presentBg)
+                                        .clickable { onSetStatus(student.id, AttendanceStatus.PRESENT) }
+                                        .padding(vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Present",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = presentTextColor
+                                    )
+                                }
 
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(excusedBg)
-                                    .clickable { onSetStatus(student.id, AttendanceStatus.EXCUSED) }
-                                    .padding(vertical = 10.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "Excused",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = excusedTextColor
-                                )
+                                // Absent Button
+                                val isAbsent = student.status == AttendanceStatus.ABSENT
+                                val absentBg = if (isAbsent) Color(0xFF944242) else Color(0xFFF3ECE5)
+                                val absentTextColor = if (isAbsent) Color.White else DarkMaroonText
+
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(absentBg)
+                                        .clickable { onSetStatus(student.id, AttendanceStatus.ABSENT) }
+                                        .padding(vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Absent",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = absentTextColor
+                                    )
+                                }
+
+                                // Excused Button
+                                val isExcused = student.status == AttendanceStatus.EXCUSED
+                                val excusedBg = if (isExcused) Color(0xFF8B5E2B) else Color(0xFFF3ECE5)
+                                val excusedTextColor = if (isExcused) Color.White else DarkMaroonText
+
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(excusedBg)
+                                        .clickable { onSetStatus(student.id, AttendanceStatus.EXCUSED) }
+                                        .padding(vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Excused",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = excusedTextColor
+                                    )
+                                }
                             }
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -486,7 +801,7 @@ fun MarkAttendanceContent(
                     Spacer(modifier = Modifier.width(10.dp))
 
                     Text(
-                        text = if (uiState.isSaved) "Attendance saved successfully!" else uiState.noticeText,
+                        text = uiState.noticeText,
                         fontSize = 12.sp,
                         lineHeight = 17.sp,
                         color = DeepPlum
@@ -499,31 +814,48 @@ fun MarkAttendanceContent(
             // Primary Action Button ("Save attendance")
             Button(
                 onClick = onSaveAttendanceClick,
+                enabled = !uiState.isSaving && uiState.currentStudents.isNotEmpty(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = DeepPlum,
-                    contentColor = Color.White
+                    contentColor = Color.White,
+                    disabledContainerColor = DeepPlum.copy(alpha = 0.5f),
+                    disabledContentColor = Color.White.copy(alpha = 0.7f)
                 ),
                 shape = RoundedCornerShape(24.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                if (uiState.isSaving) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = if (uiState.isSaved) "Saved ✓" else "Save attendance",
+                        text = "Saving attendance...",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Canvas(modifier = Modifier.size(16.dp)) {
-                        val w = size.width
-                        val h = size.height
-                        val stroke = 2.dp.toPx()
-                        drawLine(color = Color.White, start = Offset(0f, h * 0.55f), end = Offset(w * 0.38f, h * 0.9f), strokeWidth = stroke, cap = StrokeCap.Round)
-                        drawLine(color = Color.White, start = Offset(w * 0.38f, h * 0.9f), end = Offset(w, h * 0.15f), strokeWidth = stroke, cap = StrokeCap.Round)
+                } else {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (uiState.isSaved) "Saved ✓" else "Save attendance",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Canvas(modifier = Modifier.size(16.dp)) {
+                            val w = size.width
+                            val h = size.height
+                            val stroke = 2.dp.toPx()
+                            drawLine(color = Color.White, start = Offset(0f, h * 0.55f), end = Offset(w * 0.38f, h * 0.9f), strokeWidth = stroke, cap = StrokeCap.Round)
+                            drawLine(color = Color.White, start = Offset(w * 0.38f, h * 0.9f), end = Offset(w, h * 0.15f), strokeWidth = stroke, cap = StrokeCap.Round)
+                        }
                     }
                 }
             }
@@ -538,11 +870,7 @@ fun MarkAttendanceContent(
 fun MarkAttendanceScreenPreview() {
     NritahubTheme {
         MarkAttendanceContent(
-            uiState = MarkAttendanceUiState(),
-            onBatchSelect = {},
-            onSetStatus = { _, _ -> },
-            onSaveAttendanceClick = {},
-            onBackClick = {}
+            uiState = MarkAttendanceUiState()
         )
     }
 }

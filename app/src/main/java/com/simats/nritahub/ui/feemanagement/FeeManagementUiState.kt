@@ -9,7 +9,10 @@ data class StudentFeeRecord(
     val studentName: String,
     val batchName: String,
     val feeAmount: String,
-    val isPaid: Boolean
+    val isPaid: Boolean,
+    val numericId: Int? = null,
+    val status: String = if (isPaid) "Paid" else "Pending",
+    val dueDate: String? = null
 )
 
 data class StaffSalaryRecord(
@@ -18,7 +21,8 @@ data class StaffSalaryRecord(
     val role: String,
     val activeBatches: String,
     val calculatedSalary: String,
-    val payoutStatus: String = "Calculated"
+    val payoutStatus: String = "Calculated",
+    val numericId: Int? = null
 )
 
 sealed interface FeeManagementNavigationEvent {
@@ -45,21 +49,12 @@ data class FeeManagementUiState(
     val payoutStaffSalaryInput: String = "₹45,000",
     val payoutStaffUsernameInput: String = "meera.iyer@nritahub",
     val processedPayoutSuccessName: String? = null,
-    val studentFeeRecords: List<StudentFeeRecord> = listOf(
-        StudentFeeRecord("001", "Ananya Rao", "Bharatanatyam F2 · Autumn Recital Fee", "₹3,500", true),
-        StudentFeeRecord("002", "Kavya Shah", "Bharatanatyam F2 · Autumn Recital Fee", "₹3,500", false),
-        StudentFeeRecord("003", "Diya Menon", "Bharatanatyam F2 · Autumn Recital Fee", "₹3,500", true),
-        StudentFeeRecord("004", "Rohan Patel", "Bharatanatyam F2 · Autumn Recital Fee", "₹3,500", false),
-        StudentFeeRecord("005", "Aditi Kulkarni", "Bharatanatyam F1 · Autumn Recital Fee", "₹3,500", true)
-    ),
-    val staffSalaryRecords: List<StaffSalaryRecord> = listOf(
-        StaffSalaryRecord("s1", "Meera Iyer", "Senior Instructor", "Foundation F1 & F2 (38 students)", "₹45,000"),
-        StaffSalaryRecord("s2", "Dr. Rukmini Devi", "Chief Administrator", "All Academy Batches", "₹65,000"),
-        StaffSalaryRecord("s3", "Siddharth Menon", "Nattuvangam Instructor", "Advanced Batches", "₹35,000"),
-        StaffSalaryRecord("s4", "Lakshmi Narayanan", "Abhinaya Specialist", "Senior Batches", "₹35,000")
-    ),
+    val studentFeeRecords: List<StudentFeeRecord> = emptyList(),
+    val staffSalaryRecords: List<StaffSalaryRecord> = emptyList(),
     val selectedTab: AdminTab = AdminTab.FEES,
     val isLoading: Boolean = false,
+    val isSubmitting: Boolean = false,
     val errorMessage: String? = null,
+    val successMessage: String? = null,
     val navigationEvent: FeeManagementNavigationEvent = FeeManagementNavigationEvent.None
 )

@@ -20,6 +20,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -63,6 +68,55 @@ fun InstructorProfileScreen(
     onSignOut: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = {
+                Text(
+                    text = "Log out",
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Serif,
+                    fontSize = 18.sp,
+                    color = DarkMaroonText
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to log out?",
+                    fontSize = 14.sp,
+                    color = MutedBodyText
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLogoutDialog = false
+                        onSignOut()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = DarkMaroonText,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Logout", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showLogoutDialog = false },
+                    border = BorderStroke(1.dp, CardBorder),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Cancel", color = DeepPlum)
+                }
+            },
+            containerColor = CardBackground,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
 
     LaunchedEffect(uiState.navigationEvent) {
         when (uiState.navigationEvent) {
@@ -71,7 +125,7 @@ fun InstructorProfileScreen(
                 viewModel.onNavigationHandled()
             }
             InstructorProfileNavigationEvent.SignOutClicked -> {
-                onSignOut()
+                showLogoutDialog = true
                 viewModel.onNavigationHandled()
             }
             InstructorProfileNavigationEvent.EditProfileClicked -> {

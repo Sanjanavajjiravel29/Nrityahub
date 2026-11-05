@@ -36,6 +36,7 @@ data class AdministratorDashboardUiState(
     val attentionTitle: String = "Admin Quick Controls",
     val attentionItems: List<AttentionItem> = listOf(
         AttentionItem("Manage Batches & Name Lists", "Student & staff rosters", "nav_page_30"),
+        AttentionItem("Mark & Review Attendance", "Batch student attendance records", "attendance"),
         AttentionItem("Fees & Salary Calculation", "Fee management & staff payout calculations", "nav_page_31"),
         AttentionItem("Publish Program Announcement", "Recital, workshop & exam notices", "add_announcement"),
         AttentionItem("View Class Schedule & Timetable", "Academy class schedule and studio availability", "nav_schedule")

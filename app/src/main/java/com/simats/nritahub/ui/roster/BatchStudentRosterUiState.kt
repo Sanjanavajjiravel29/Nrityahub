@@ -7,13 +7,16 @@ data class BatchInfo(
     val title: String,
     val schedule: String,
     val studentCountBadge: String,
-    val studioBadge: String
+    val studioBadge: String,
+    val numericId: Int? = null
 )
 
 data class StudentRosterItem(
     val initials: String,
     val name: String,
-    val levelAndAttendance: String
+    val levelAndAttendance: String,
+    val numericId: Int? = null,
+    val email: String? = null
 )
 
 sealed interface BatchStudentRosterNavigationEvent {
@@ -32,6 +35,7 @@ data class BatchStudentRosterUiState(
         BatchInfo("f2", "Bharatanatyam Foundation F2", "Tue / Thu / Sat · 4:30 PM", "18 students", "Studio 1"),
         BatchInfo("f1", "Bharatanatyam Foundation F1", "Tue / Thu / Sat · 6:00 PM", "20 students", "Studio 2")
     ),
+    val batchStudents: List<StudentRosterItem> = emptyList(),
     val batch1Students: List<StudentRosterItem> = listOf(
         StudentRosterItem("AR", "Ananya Rao", "Foundation F2 · 92% · 12/13 classes"),
         StudentRosterItem("AV", "Arjun Varma", "Foundation F2 · 77% · 10/13 classes"),

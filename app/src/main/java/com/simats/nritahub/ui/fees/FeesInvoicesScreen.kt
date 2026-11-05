@@ -77,7 +77,8 @@ fun FeesInvoicesScreen(
     FeesInvoicesContent(
         uiState = uiState,
         onGenerateInvoiceClick = viewModel::onGenerateInvoiceClicked,
-        onBackClick = viewModel::onBackClicked
+        onBackClick = viewModel::onBackClicked,
+        onRefreshClick = viewModel::fetchStudentFees
     )
 }
 
@@ -85,7 +86,8 @@ fun FeesInvoicesScreen(
 fun FeesInvoicesContent(
     uiState: FeesInvoicesUiState,
     onGenerateInvoiceClick: () -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onRefreshClick: () -> Unit = {}
 ) {
     Scaffold(
         containerColor = CreamBackground
@@ -505,8 +507,8 @@ fun FeesInvoicesContent(
                                                 .padding(horizontal = 14.dp, vertical = 10.dp),
                                             horizontalArrangement = Arrangement.SpaceBetween
                                         ) {
-                                            Text(text = "Monthly Fee", fontSize = 13.sp, color = DarkMaroonText)
-                                            Text(text = "3,000", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DarkMaroonText)
+                                            Text(text = uiState.feePeriod, fontSize = 13.sp, color = DarkMaroonText)
+                                            Text(text = uiState.paidFeeAmount, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DarkMaroonText)
                                         }
 
                                         HorizontalDivider(color = CardBorder, thickness = 1.dp)
@@ -520,7 +522,7 @@ fun FeesInvoicesContent(
                                             horizontalArrangement = Arrangement.SpaceBetween
                                         ) {
                                             Text(text = "Total Amount", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = DarkMaroonText)
-                                            Text(text = "3,000", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = DarkMaroonText)
+                                            Text(text = uiState.paidFeeAmount, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = DarkMaroonText)
                                         }
                                     }
                                 }

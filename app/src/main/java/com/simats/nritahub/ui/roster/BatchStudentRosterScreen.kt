@@ -318,7 +318,7 @@ fun BatchStudentRosterContent(
 
             // Active Batch Students Section Header
             val activeBatch = uiState.batches.find { it.id == uiState.selectedBatchId } ?: uiState.batches.first()
-            val currentStudents = if (uiState.selectedBatchId == "f2") uiState.batch1Students else uiState.batch2Students
+            val currentStudents = if (uiState.batchStudents.isNotEmpty()) uiState.batchStudents else (if (uiState.selectedBatchId == "f2") uiState.batch1Students else uiState.batch2Students)
 
             Row(
                 modifier = Modifier.fillMaxWidth(),

@@ -1,5 +1,9 @@
 package com.simats.nritahub.ui.home
 
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -69,9 +73,59 @@ fun StudentHomeScreen(
     onNavigateToAttendance: () -> Unit = {},
     onNavigateToSchedule: () -> Unit = {},
     onNavigateToPractice: () -> Unit = {},
-    onNavigateToProgress: () -> Unit = {}
+    onNavigateToProgress: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = {
+                Text(
+                    text = "Log out",
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Serif,
+                    fontSize = 18.sp,
+                    color = DarkMaroonText
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to log out?",
+                    fontSize = 14.sp,
+                    color = MutedBodyText
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLogoutDialog = false
+                        onLogout()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = DarkMaroonText,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Logout", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showLogoutDialog = false },
+                    border = BorderStroke(1.dp, CardBorder),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Cancel", color = DeepPlum)
+                }
+            },
+            containerColor = CardBackground,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
 
     LaunchedEffect(uiState.navigationEvent) {
         when (uiState.navigationEvent) {
@@ -110,7 +164,8 @@ fun StudentHomeScreen(
         onExploreEventsClick = viewModel::onExploreEventsClicked,
         onNotificationsClick = viewModel::onNotificationsClicked,
         onFeesClick = onNavigateToFees,
-        onAttendanceClick = onNavigateToAttendance
+        onAttendanceClick = onNavigateToAttendance,
+        onLogoutClick = { showLogoutDialog = true }
     )
 }
 
@@ -123,7 +178,8 @@ fun StudentHomeContent(
     onExploreEventsClick: () -> Unit,
     onNotificationsClick: () -> Unit,
     onFeesClick: () -> Unit,
-    onAttendanceClick: () -> Unit
+    onAttendanceClick: () -> Unit,
+    onLogoutClick: () -> Unit = {}
 ) {
     Scaffold(
         containerColor = CreamBackground
@@ -167,34 +223,63 @@ fun StudentHomeContent(
                     }
                 }
 
-                // Bell / Notification Icon
-                IconButton(
-                    onClick = onNotificationsClick,
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Canvas(modifier = Modifier.size(18.dp)) {
-                        val w = size.width
-                        val h = size.height
-                        drawPath(
-                            path = Path().apply {
-                                moveTo(w * 0.5f, 0f)
-                                cubicTo(w * 0.2f, h * 0.1f, w * 0.1f, h * 0.5f, w * 0.1f, h * 0.75f)
-                                lineTo(w * 0.9f, h * 0.75f)
-                                cubicTo(w * 0.9f, h * 0.5f, w * 0.8f, h * 0.1f, w * 0.5f, 0f)
-                            },
-                            color = DeepPlum,
-                            style = Stroke(width = 1.5.dp.toPx())
-                        )
-                        drawLine(color = DeepPlum, start = Offset(0f, h * 0.75f), end = Offset(w, h * 0.75f), strokeWidth = 1.5.dp.toPx())
-                        drawArc(
-                            color = DeepPlum,
-                            startAngle = 0f,
-                            sweepAngle = 180f,
-                            useCenter = false,
-                            topLeft = Offset(w * 0.35f, h * 0.75f),
-                            size = Size(w * 0.3f, h * 0.25f),
-                            style = Stroke(width = 1.5.dp.toPx())
-                        )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Bell / Notification Icon
+                    IconButton(
+                        onClick = onNotificationsClick,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Canvas(modifier = Modifier.size(18.dp)) {
+                            val w = size.width
+                            val h = size.height
+                            drawPath(
+                                path = Path().apply {
+                                    moveTo(w * 0.5f, 0f)
+                                    cubicTo(w * 0.2f, h * 0.1f, w * 0.1f, h * 0.5f, w * 0.1f, h * 0.75f)
+                                    lineTo(w * 0.9f, h * 0.75f)
+                                    cubicTo(w * 0.9f, h * 0.5f, w * 0.8f, h * 0.1f, w * 0.5f, 0f)
+                                },
+                                color = DeepPlum,
+                                style = Stroke(width = 1.5.dp.toPx())
+                            )
+                            drawLine(color = DeepPlum, start = Offset(0f, h * 0.75f), end = Offset(w, h * 0.75f), strokeWidth = 1.5.dp.toPx())
+                            drawArc(
+                                color = DeepPlum,
+                                startAngle = 0f,
+                                sweepAngle = 180f,
+                                useCenter = false,
+                                topLeft = Offset(w * 0.35f, h * 0.75f),
+                                size = Size(w * 0.3f, h * 0.25f),
+                                style = Stroke(width = 1.5.dp.toPx())
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Quick Logout Icon
+                    IconButton(
+                        onClick = onLogoutClick,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Canvas(modifier = Modifier.size(18.dp)) {
+                            val w = size.width
+                            val h = size.height
+                            val stroke = 1.6.dp.toPx()
+                            drawPath(
+                                path = Path().apply {
+                                    moveTo(w * 0.55f, h * 0.15f)
+                                    lineTo(w * 0.15f, h * 0.15f)
+                                    lineTo(w * 0.15f, h * 0.85f)
+                                    lineTo(w * 0.55f, h * 0.85f)
+                                },
+                                color = DeepPlum,
+                                style = Stroke(width = stroke, cap = StrokeCap.Round)
+                            )
+                            drawLine(color = DeepPlum, start = Offset(w * 0.35f, h * 0.5f), end = Offset(w * 0.95f, h * 0.5f), strokeWidth = stroke, cap = StrokeCap.Round)
+                            drawLine(color = DeepPlum, start = Offset(w * 0.7f, h * 0.25f), end = Offset(w * 0.95f, h * 0.5f), strokeWidth = stroke, cap = StrokeCap.Round)
+                            drawLine(color = DeepPlum, start = Offset(w * 0.7f, h * 0.75f), end = Offset(w * 0.95f, h * 0.5f), strokeWidth = stroke, cap = StrokeCap.Round)
+                        }
                     }
                 }
             }
@@ -747,6 +832,29 @@ fun StudentHomeContent(
             }
 
             Spacer(modifier = Modifier.height(20.dp))
+
+            // Visible Logout Option
+            OutlinedButton(
+                onClick = onLogoutClick,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = CardBackground,
+                    contentColor = DeepPlum
+                ),
+                border = BorderStroke(1.dp, CardBorder),
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Text(
+                    text = "Log out",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = DeepPlum
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
@@ -824,7 +932,8 @@ fun StudentHomeScreenPreview() {
             onExploreEventsClick = {},
             onNotificationsClick = {},
             onFeesClick = {},
-            onAttendanceClick = {}
+            onAttendanceClick = {},
+            onLogoutClick = {}
         )
     }
 }
