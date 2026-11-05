@@ -1,5 +1,8 @@
 package com.simats.nritahub.ui.submit
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -23,6 +26,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -42,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -64,6 +70,15 @@ fun SubmitAssignmentScreen(
     onSubmitSuccess: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            viewModel.onFilePicked(context, uri)
+        }
+    }
 
     LaunchedEffect(uiState.navigationEvent) {
         when (uiState.navigationEvent) {
@@ -72,13 +87,14 @@ fun SubmitAssignmentScreen(
                 viewModel.onNavigationHandled()
             }
             SubmitAssignmentNavigationEvent.ChooseFileClicked -> {
+                filePickerLauncher.launch("*/*")
                 viewModel.onNavigationHandled()
             }
             SubmitAssignmentNavigationEvent.RemoveFileClicked -> {
                 viewModel.onNavigationHandled()
             }
             SubmitAssignmentNavigationEvent.SubmittedToInstructor -> {
-                onSubmitSuccess()
+                // Keep the confirmation visible or navigate if desired
                 viewModel.onNavigationHandled()
             }
             SubmitAssignmentNavigationEvent.None -> {}
@@ -89,10 +105,12 @@ fun SubmitAssignmentScreen(
         uiState = uiState,
         onInstructorNoteChange = viewModel::onInstructorNoteChanged,
         onToggleConsentClick = viewModel::toggleConsent,
-        onChooseFileClick = viewModel::onChooseFileClicked,
+        onChooseFileClick = { filePickerLauncher.launch("*/*") },
         onRemoveFileClick = viewModel::onRemoveFileClicked,
         onSubmitClick = viewModel::onSubmitClicked,
-        onBackClick = viewModel::onBackClicked
+        onBackClick = viewModel::onBackClicked,
+        onSelectHomework = viewModel::onSelectHomework,
+        onRetryClick = viewModel::loadAssignedHomework
     )
 }
 
@@ -104,7 +122,9 @@ fun SubmitAssignmentContent(
     onChooseFileClick: () -> Unit,
     onRemoveFileClick: () -> Unit,
     onSubmitClick: () -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onSelectHomework: (Int) -> Unit = {},
+    onRetryClick: () -> Unit = {}
 ) {
     Scaffold(
         containerColor = CreamBackground
@@ -122,37 +142,35 @@ fun SubmitAssignmentContent(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = onBackClick,
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Canvas(modifier = Modifier.size(16.dp)) {
-                            val w = size.width
-                            val h = size.height
-                            val stroke = 2.dp.toPx()
-                            drawLine(
-                                color = DeepPlum,
-                                start = Offset(w, h / 2),
-                                end = Offset(0f, h / 2),
-                                strokeWidth = stroke,
-                                cap = StrokeCap.Round
-                            )
-                            drawLine(
-                                color = DeepPlum,
-                                start = Offset(w * 0.4f, h * 0.2f),
-                                end = Offset(0f, h / 2),
-                                strokeWidth = stroke,
-                                cap = StrokeCap.Round
-                            )
-                            drawLine(
-                                color = DeepPlum,
-                                start = Offset(w * 0.4f, h * 0.8f),
-                                end = Offset(0f, h / 2),
-                                strokeWidth = stroke,
-                                cap = StrokeCap.Round
-                            )
-                        }
+                IconButton(
+                    onClick = onBackClick,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Canvas(modifier = Modifier.size(16.dp)) {
+                        val w = size.width
+                        val h = size.height
+                        val stroke = 2.dp.toPx()
+                        drawLine(
+                            color = DeepPlum,
+                            start = Offset(w, h / 2),
+                            end = Offset(0f, h / 2),
+                            strokeWidth = stroke,
+                            cap = StrokeCap.Round
+                        )
+                        drawLine(
+                            color = DeepPlum,
+                            start = Offset(w * 0.4f, h * 0.2f),
+                            end = Offset(0f, h / 2),
+                            strokeWidth = stroke,
+                            cap = StrokeCap.Round
+                        )
+                        drawLine(
+                            color = DeepPlum,
+                            start = Offset(w * 0.4f, h * 0.8f),
+                            end = Offset(0f, h / 2),
+                            strokeWidth = stroke,
+                            cap = StrokeCap.Round
+                        )
                     }
                 }
 
@@ -169,34 +187,175 @@ fun SubmitAssignmentContent(
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // Loading state banner
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = DeepPlum, strokeWidth = 2.dp)
+                }
+            }
+
+            // Error banner
+            if (uiState.errorMessage != null) {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+                    border = BorderStroke(1.dp, Color(0xFFFFCDD2)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = uiState.errorMessage,
+                            color = Color(0xFFC62828),
+                            fontSize = 12.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = "Retry",
+                            color = Color(0xFFC62828),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            modifier = Modifier
+                                .clickable { onRetryClick() }
+                                .padding(start = 8.dp)
+                        )
+                    }
+                }
+            }
+
+            // Success banner
+            if (uiState.successMessage != null) {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+                    border = BorderStroke(1.dp, Color(0xFFC8E6C9)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Canvas(modifier = Modifier.size(16.dp)) {
+                            drawCircle(color = Color(0xFF2E7D32), radius = size.width / 2)
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = uiState.successMessage,
+                            color = Color(0xFF2E7D32),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
+            // Homework Selector if multiple homework items exist
+            if (uiState.homeworkList.size > 1) {
+                Text(
+                    text = "SELECT ASSIGNMENT",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp,
+                    color = MediumMaroonText
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    uiState.homeworkList.forEach { hw ->
+                        val isSelected = hw.id == uiState.selectedHomeworkId
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    if (isSelected) DeepPlum else SoftLavenderBadge,
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .clickable { onSelectHomework(hw.id) }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = hw.title,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) Color.White else DeepPlum
+                            )
+                        }
+                    }
+                }
+            }
+
             // Main Title
             Text(
                 text = uiState.title,
                 fontFamily = FontFamily.Serif,
-                fontSize = 32.sp,
+                fontSize = 28.sp,
                 color = DarkMaroonText
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Assignment Badge
-            Box(
-                modifier = Modifier
-                    .background(SoftLavenderBadge, shape = RoundedCornerShape(20.dp))
-                    .padding(horizontal = 14.dp, vertical = 6.dp)
+            // Assignment Badge & Status Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = uiState.badgeText,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp,
-                    color = DeepPlum
-                )
+                Box(
+                    modifier = Modifier
+                        .background(SoftLavenderBadge, shape = RoundedCornerShape(20.dp))
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = uiState.badgeText,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp,
+                        color = DeepPlum
+                    )
+                }
+
+                if (uiState.submissionStatus != null) {
+                    val isReviewed = uiState.submissionStatus.equals("Reviewed", ignoreCase = true)
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                if (isReviewed) Color(0xFFE8F5E9) else Color(0xFFFFF3E0),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = if (isReviewed) "Reviewed" else "Submitted · Pending Review",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isReviewed) Color(0xFF2E7D32) else Color(0xFFE65100)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Subtitle
+            // Subtitle / Description
             Text(
                 text = uiState.subtitle,
                 fontSize = 13.sp,
@@ -283,7 +442,7 @@ fun SubmitAssignmentContent(
                             .height(48.dp)
                     ) {
                         Text(
-                            text = "Choose another file",
+                            text = if (uiState.isFileAttached) "Choose another file" else "Select file from device",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = DarkMaroonText
@@ -354,16 +513,119 @@ fun SubmitAssignmentContent(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
-                            text = "Ready to submit · Remove file",
+                            text = "Remove file",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF2E7D32),
+                            color = Color(0xFFC62828),
                             modifier = Modifier.clickable { onRemoveFileClick() }
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // Instructor Review & Evaluation Card (if assignment was already reviewed)
+            if (uiState.hasReview) {
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFBF7F2)),
+                    border = BorderStroke(1.dp, CardBorder),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "INSTRUCTOR FEEDBACK",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.8.sp,
+                                color = DeepPlum
+                            )
+                            if (!uiState.reviewerName.isNullOrBlank()) {
+                                Text(
+                                    text = "by ${uiState.reviewerName}",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MediumMaroonText
+                                )
+                            }
+                        }
+
+                        if (!uiState.reviewedFeedback.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = uiState.reviewedFeedback,
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp,
+                                color = DarkMaroonText
+                            )
+                        }
+
+                        if (!uiState.reviewedNextStep.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "Actionable Next Step:",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = DeepPlum
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = uiState.reviewedNextStep,
+                                fontSize = 12.sp,
+                                lineHeight = 17.sp,
+                                color = DarkMaroonText
+                            )
+                        }
+
+                        // Checklist items summary
+                        if (uiState.reviewedChecklist.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            HorizontalDivider(color = CardBorder, thickness = 1.dp)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Evaluation Checklist:",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = DeepPlum
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            uiState.reviewedChecklist.forEach { item ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = if (item.isChecked) "✓" else "○",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (item.isChecked) Color(0xFF2E7D32) else Color(0xFF9E9E9E)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = item.title,
+                                        fontSize = 12.sp,
+                                        color = DarkMaroonText,
+                                        fontWeight = if (item.isChecked) FontWeight.SemiBold else FontWeight.Normal
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             // "A note for your instructor" Field
@@ -380,6 +642,13 @@ fun SubmitAssignmentContent(
                 value = uiState.instructorNote,
                 onValueChange = onInstructorNoteChange,
                 minLines = 3,
+                placeholder = {
+                    Text(
+                        text = "e.g. My count feels steadier now. I'd love help with posture in the third speed set.",
+                        fontSize = 12.sp,
+                        color = MutedBodyText
+                    )
+                },
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = CardBackground,
@@ -482,9 +751,10 @@ fun SubmitAssignmentContent(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Primary Action Button ("Submit to Meera" in Dark Maroon with Bold White Text)
+            // Primary Action Button ("Submit to Meera" / "Submit to Instructor")
             Button(
                 onClick = onSubmitClick,
+                enabled = !uiState.isSubmitting,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = DarkMaroonText,
                     contentColor = Color.White
@@ -494,31 +764,46 @@ fun SubmitAssignmentContent(
                     .fillMaxWidth()
                     .height(52.dp)
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                if (uiState.isSubmitting) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = uiState.submitButtonText,
-                        fontSize = 17.sp,
+                        text = "Submitting Practice...",
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    // Send Paperplane Icon
-                    Canvas(modifier = Modifier.size(16.dp)) {
-                        val w = size.width
-                        val h = size.height
-                        drawPath(
-                            path = Path().apply {
-                                moveTo(0f, 0f)
-                                lineTo(w, h * 0.5f)
-                                lineTo(0f, h)
-                                lineTo(w * 0.3f, h * 0.5f)
-                                close()
-                            },
+                } else {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (uiState.submissionStatus != null) "Resubmit Practice" else uiState.submitButtonText,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        // Send Paperplane Icon
+                        Canvas(modifier = Modifier.size(16.dp)) {
+                            val w = size.width
+                            val h = size.height
+                            drawPath(
+                                path = Path().apply {
+                                    moveTo(0f, 0f)
+                                    lineTo(w, h * 0.5f)
+                                    lineTo(0f, h)
+                                    lineTo(w * 0.3f, h * 0.5f)
+                                    close()
+                                },
+                                color = Color.White
+                            )
+                        }
                     }
                 }
             }

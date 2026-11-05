@@ -169,8 +169,8 @@ fun NrityaHubApp() {
         }
         Screen.SubmitAssignment -> {
             SubmitAssignmentScreen(
-                onBackToPrevious = { currentScreen = Screen.PracticeLibrary },
-                onSubmitSuccess = { currentScreen = Screen.MyProgress }
+                onBackToPrevious = { currentScreen = Screen.StudentHome },
+                onSubmitSuccess = { currentScreen = Screen.StudentHome }
             )
         }
         Screen.MyProgress -> {
@@ -229,7 +229,13 @@ fun NrityaHubApp() {
         }
         Screen.ReviewPractice -> {
             ReviewPracticeScreen(
-                onBackToPrevious = { currentScreen = Screen.InstructorDashboard }
+                onBackToPrevious = {
+                    currentScreen = if (sessionManager.getUserRole()?.lowercase()?.trim() == "admin") {
+                        Screen.AdministratorDashboard
+                    } else {
+                        Screen.InstructorDashboard
+                    }
+                }
             )
         }
         Screen.InstructorProfile -> {

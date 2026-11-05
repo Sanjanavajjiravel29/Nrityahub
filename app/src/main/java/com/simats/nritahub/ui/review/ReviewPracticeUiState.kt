@@ -1,5 +1,8 @@
 package com.simats.nritahub.ui.review
 
+import com.simats.nritahub.data.remote.dto.BatchDto
+import com.simats.nritahub.data.remote.dto.SubmissionItemDto
+
 data class ChecklistItem(
     val id: String,
     val title: String,
@@ -12,6 +15,7 @@ sealed interface ReviewPracticeNavigationEvent {
     data object NavigateBack : ReviewPracticeNavigationEvent
     data object PublishFeedbackSuccess : ReviewPracticeNavigationEvent
     data object SaveDraftSuccess : ReviewPracticeNavigationEvent
+    data object CreateHomeworkSuccess : ReviewPracticeNavigationEvent
 }
 
 data class ReviewPracticeUiState(
@@ -41,10 +45,31 @@ data class ReviewPracticeUiState(
     val commentBoxSubtitle: String = "",
     val feedbackText: String = "Your rhythm is settling beautifully! Practice relaxing your shoulders during the 3rd speed set.",
     val nextStepText: String = "Practice a comfortable araimandi for 2 minutes daily before recording.",
-    val privacyNotice: String = "Comments and checklist feedback will be saved for student Ananya Rao.",
+    val privacyNotice: String = "Comments and checklist feedback will be saved for student.",
     val isPublished: Boolean = false,
     val isDraftSaved: Boolean = false,
     val isLoading: Boolean = false,
+    val isSaving: Boolean = false,
     val errorMessage: String? = null,
-    val navigationEvent: ReviewPracticeNavigationEvent = ReviewPracticeNavigationEvent.None
+    val successMessage: String? = null,
+    val navigationEvent: ReviewPracticeNavigationEvent = ReviewPracticeNavigationEvent.None,
+
+    // Live Submissions List & Active Selection
+    val submissionsList: List<SubmissionItemDto> = emptyList(),
+    val selectedSubmissionId: Int? = null,
+    val selectedFilter: String = "All", // "All", "Pending", "Reviewed"
+    val videoUrl: String? = null,
+    val videoFullUrl: String? = null,
+
+    // Create Homework Dialog State
+    val showCreateHomeworkDialog: Boolean = false,
+    val authorizedBatches: List<BatchDto> = emptyList(),
+    val newHomeworkBatchId: Int? = null,
+    val newHomeworkTitle: String = "",
+    val newHomeworkTopic: String = "",
+    val newHomeworkDescription: String = "",
+    val newHomeworkDueDate: String = "",
+    val isCreatingHomework: Boolean = false,
+    val createHomeworkError: String? = null,
+    val createHomeworkSuccessMessage: String? = null
 )

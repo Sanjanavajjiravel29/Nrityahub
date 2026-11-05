@@ -239,7 +239,9 @@ fun InstructorDashboardContent(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = CardBackground),
                     border = BorderStroke(1.dp, CardBorder),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onReviewClick() }
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Text(
@@ -278,6 +280,84 @@ fun InstructorDashboardContent(
                             text = "Your students",
                             fontSize = 11.sp,
                             color = MutedBodyText
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+            // Homework & Assignments Quick Action Entry Card
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = SoftLavenderBadge),
+                border = BorderStroke(1.dp, CardBorder),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onReviewClick() }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(DeepPlum),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Canvas(modifier = Modifier.size(18.dp)) {
+                                val w = size.width
+                                val h = size.height
+                                drawRect(
+                                    color = Color.White,
+                                    size = Size(w * 0.7f, h * 0.85f),
+                                    topLeft = Offset(w * 0.15f, h * 0.08f),
+                                    style = Stroke(width = 1.5.dp.toPx())
+                                )
+                                drawLine(color = Color.White, start = Offset(w * 0.3f, h * 0.35f), end = Offset(w * 0.7f, h * 0.35f), strokeWidth = 1.2.dp.toPx())
+                                drawLine(color = Color.White, start = Offset(w * 0.3f, h * 0.55f), end = Offset(w * 0.7f, h * 0.55f), strokeWidth = 1.2.dp.toPx())
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column {
+                            Text(
+                                text = "Homework & Assignments",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = DarkMaroonText
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Create, assign & review practice",
+                                fontSize = 12.sp,
+                                color = DeepPlum
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .background(DeepPlum, shape = RoundedCornerShape(14.dp))
+                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "Review",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
                     }
                 }
@@ -457,12 +537,25 @@ fun InstructorDashboardContent(
             Spacer(modifier = Modifier.height(20.dp))
 
             // "Practice waiting for you" Section
-            Text(
-                text = "Practice waiting for you",
-                fontFamily = FontFamily.Serif,
-                fontSize = 22.sp,
-                color = DarkMaroonText
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Practice waiting for you",
+                    fontFamily = FontFamily.Serif,
+                    fontSize = 22.sp,
+                    color = DarkMaroonText
+                )
+                Text(
+                    text = "Review All →",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = DeepPlum,
+                    modifier = Modifier.clickable { onReviewClick() }
+                )
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
